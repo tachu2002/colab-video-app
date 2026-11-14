@@ -19,10 +19,8 @@ class _ConnectPageState extends State<ConnectPage> {
   void initState() {
     super.initState();
     widget.state.addListener(_rebuild);
-    // 表示中は30秒ごとにDriveを読み直す（サインイン済みのときだけ）
-    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
-      if (widget.state.account != null && !widget.state.busy) widget.state.refreshFromDrive();
-    });
+    widget.state.refreshFromDrive();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => widget.state.refreshFromDrive());
   }
 
   void _rebuild() { if (mounted) setState(() {}); }
@@ -103,15 +101,14 @@ class _ConnectPageState extends State<ConnectPage> {
       FilledButton.icon(
         onPressed: s.busy ? null : s.refreshFromDrive,
         icon: s.busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
-        label: Text(st != null && !st.isRunning ? '再接続（Driveを読み直す）' : 'Driveから接続情報を読む'),
+        label: const Text('今すぐ読み直す'),
       ),
-      if (s.driveError != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(s.driveError!.contains('sign_in_failed') ? 'Googleサインインの設定がまだ無いので、Drive連携は使えません。下の「接続情報を貼り付ける」を使ってください。' : s.driveError!, style: const TextStyle(color: Colors.orangeAccent))),
+      if (s.driveError != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(s.driveError!, style: const TextStyle(color: Colors.orangeAccent))),
       const SizedBox(height: 8),
       OutlinedButton.icon(onPressed: st == null || _testing ? null : _test, icon: const Icon(Icons.wifi_tethering), label: const Text('接続テスト')),
       if (_healthy != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_healthy! ? '応答しました' : '応答がありません。Colabが動いているか確認してください', style: TextStyle(color: _healthy! ? Colors.greenAccent : Colors.orangeAccent))),
       const SizedBox(height: 8),
-      FilledButton.tonalIcon(onPressed: _manual, icon: const Icon(Icons.content_paste), label: const Text('接続情報を貼り付ける（かんたん）')),
-      if (s.account != null) TextButton(onPressed: s.signOut, child: Text('Googleアカウントを外す（${s.account!.email}）')),
+      FilledButton.tonalIcon(onPressed: _manual, icon: const Icon(Icons.content_paste), label: const Text('うまくいかない時は貼り付ける')),
       const SizedBox(height: 16),
       const Text('使い方: PCやスマホでColabのノートブックを「すべてのセルを実行」→ 最後のセルが動いている間だけ、このアプリから生成できます。止めるとここが「停止中」になります。',
           style: TextStyle(fontSize: 12, color: Colors.grey)),

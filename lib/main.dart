@@ -36,21 +36,29 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WidgetsBindingObserver {
   int tab = 0;
 
   @override
   void initState() {
     super.initState();
     widget.state.addListener(_onState);
+    WidgetsBinding.instance.addObserver(this);
+    widget.state.refreshFromDrive();
     // 接続情報がまだ無ければ接続タブから始める
     tab = widget.state.status == null ? 0 : 1;
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.state.removeListener(_onState);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState s) {
+    if (s == AppLifecycleState.resumed) widget.state.refreshFromDrive();
   }
 
   void _onState() {

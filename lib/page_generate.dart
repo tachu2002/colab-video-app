@@ -123,6 +123,7 @@ class _GeneratePageState extends State<GeneratePage> {
   }
 
   Future<void> _run() async {
+    await s.ensureFresh();
     final st = s.status;
     if (st == null || !st.isRunning) { setState(() => error = '接続できていません。接続タブで再接続してください'); return; }
     if (mode != 't2v' && images.isEmpty) { setState(() => error = '画像をえらんでください'); return; }

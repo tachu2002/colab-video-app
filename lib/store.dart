@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
@@ -34,9 +34,6 @@ class AppState extends ChangeNotifier {
   List<HistoryItem> history = [];
   String? driveError;
   bool busy = false;
-  GoogleSignInAccount? account;
-
-  final _google = GoogleSignIn(scopes: ['https://www.googleapis.com/auth/drive.readonly']);
   late SharedPreferences _p;
 
   Future<void> init() async {
@@ -51,7 +48,6 @@ class AppState extends ChangeNotifier {
         history = (jsonDecode(h) as List).map((e) => HistoryItem.fromJson(e)).toList();
       } catch (_) {}
     }
-    try { account = await _google.signInSilently(); } catch (_) {}
     notifyListeners();
   }
 
@@ -60,33 +56,43 @@ class AppState extends ChangeNotifier {
     _p.setString('status', jsonEncode(raw));
   }
 
-  /// Driveの ColabVideoApp/status.json を読む（ここが「再接続」の本体）
+  static const statusFileId = '1FE8pG48hFteyNRhyDWzcDbAfjWufkyYZ';
+
+  /// 共有リンクの status.json を自動で読む（貼り付け不要）
   Future<void> refreshFromDrive() async {
+    if (busy) return;
     busy = true; driveError = null; notifyListeners();
     try {
-      account ??= await _google.signIn();
-      if (account == null) throw ApiException('Googleアカウントでのサインインが必要です');
-      final h = await account!.authHeaders;
-      Future<dynamic> get(String url) async {
-        final r = await http.get(Uri.parse(url), headers: h).timeout(const Duration(seconds: 30));
-        if (r.statusCode != 200) throw ApiException('Driveの読み取りに失敗しました (${r.statusCode})');
-        return r;
+      final t = DateTime.now().millisecondsSinceEpoch;
+      final urls = [
+        'https://drive.usercontent.google.com/download?id=$statusFileId&export=download&t=$t',
+        'https://drive.google.com/uc?export=download&id=$statusFileId&t=$t',
+      ];
+      Object? last;
+      for (final u in urls) {
+        try {
+          final r = await http.get(Uri.parse(u), headers: {'Cache-Control': 'no-cache'}).timeout(const Duration(seconds: 20));
+          if (r.statusCode != 200) { last = 'HTTP ${r.statusCode}'; continue; }
+          final j = jsonDecode(utf8.decode(r.bodyBytes));
+          if (j is Map<String, dynamic> && j['comfy_url'] != null) {
+            _saveStatus(j);
+            last = null;
+            break;
+          }
+          last = '形式が違います';
+        } catch (e) { last = e; }
       }
-      final folders = jsonDecode((await get(
-          'https://www.googleapis.com/drive/v3/files?q=${Uri.encodeQueryComponent("name='ColabVideoApp' and mimeType='application/vnd.google-apps.folder' and trashed=false")}&fields=files(id)')).body);
-      if ((folders['files'] as List).isEmpty) throw ApiException('Driveに ColabVideoApp フォルダがありません。先にColabのノートブックを実行してください');
-      final fid = folders['files'][0]['id'];
-      final files = jsonDecode((await get(
-          'https://www.googleapis.com/drive/v3/files?q=${Uri.encodeQueryComponent("'$fid' in parents and name='status.json' and trashed=false")}&fields=files(id)')).body);
-      if ((files['files'] as List).isEmpty) throw ApiException('status.json がありません。Colabのノートブックを実行してください');
-      final id = files['files'][0]['id'];
-      final body = (await get('https://www.googleapis.com/drive/v3/files/$id?alt=media')).bodyBytes;
-      _saveStatus(jsonDecode(utf8.decode(body)));
+      if (last != null) throw ApiException('接続情報を読めませんでした（$last）。Colabが動いているか、通信を確認してください');
     } catch (e) {
       driveError = e.toString();
     } finally {
       busy = false; notifyListeners();
     }
+  }
+
+  /// 古ければ読み直す（生成前など）
+  Future<void> ensureFresh() async {
+    if (status == null || status!.isStale) await refreshFromDrive();
   }
 
   /// Drive連携を使わず、URLとトークンを直接入れる場合
@@ -124,10 +130,16 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<void> signOut() async {
-    await _google.signOut();
-    account = null;
-    notifyListeners();
+  /// 動画をスマホの「ダウンロード」フォルダへ保存
+  Future<void> saveToDownloads(HistoryItem it) async {
+    await MediaStore.ensureInitialized();
+    MediaStore.appFolder = 'ColabVideo';
+    final ok = await MediaStore().saveFile(
+      tempFilePath: it.path,
+      dirType: DirType.download,
+      dirName: DirName.download,
+    );
+    if (ok == null) throw ApiException('保存できませんでした');
   }
 
   // ---- 履歴 ----

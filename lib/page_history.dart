@@ -67,6 +67,15 @@ class _DetailPageState extends State<DetailPage> {
     final it = widget.item;
     return Scaffold(
       appBar: AppBar(title: const Text('動画'), actions: [
+        IconButton(icon: const Icon(Icons.download), tooltip: 'ダウンロードに保存', onPressed: () async {
+          final m = ScaffoldMessenger.of(context);
+          try {
+            await widget.state.saveToDownloads(it);
+            m.showSnackBar(const SnackBar(content: Text('「ダウンロード」フォルダに保存しました')));
+          } catch (e) {
+            m.showSnackBar(SnackBar(content: Text('保存できませんでした: $e')));
+          }
+        }),
         IconButton(icon: const Icon(Icons.delete_outline), onPressed: () async {
           final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
             title: const Text('この動画を消しますか？'), content: const Text('端末からも消えます。元に戻せません。'),
@@ -85,6 +94,11 @@ class _DetailPageState extends State<DetailPage> {
         const SizedBox(height: 8),
         Text('シード ${it.seed} ・ 画質 ${it.preset}${it.lora.isEmpty ? '' : ' ・ LoRA ${it.lora}'}', style: const TextStyle(fontSize: 12)),
         const SizedBox(height: 12),
+        FilledButton.tonalIcon(onPressed: () async {
+          final m = ScaffoldMessenger.of(context);
+          try { await widget.state.saveToDownloads(it); m.showSnackBar(const SnackBar(content: Text('「ダウンロード」フォルダに保存しました'))); } catch (e) { m.showSnackBar(SnackBar(content: Text('保存できませんでした: $e'))); }
+        }, icon: const Icon(Icons.download), label: const Text('ダウンロードに保存')),
+        const SizedBox(height: 8),
         FilledButton.icon(onPressed: () { widget.state.regenerate(it); Navigator.pop(context); }, icon: const Icon(Icons.replay), label: const Text('同じ設定でつくり直す')),
       ]),
     );
