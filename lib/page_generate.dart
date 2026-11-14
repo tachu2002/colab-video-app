@@ -34,6 +34,8 @@ class _GeneratePageState extends State<GeneratePage> {
   String stage = '';
   Uint8List? preview;
   int previewCount = 0;
+  DateTime? previewAt;
+  String previewStage = '';
   String? error;
   int doneCount = 0;
   DateTime? startedAt;
@@ -167,7 +169,7 @@ class _GeneratePageState extends State<GeneratePage> {
                       (b[k] == 0x89 && b[k + 1] == 0x50 && b[k + 2] == 0x4E && b[k + 3] == 0x47)) { at = k; break; }
                 }
                 if (at < 0) return;
-                if (mounted) setState(() { preview = Uint8List.fromList(b.sublist(at)); previewCount++; });
+                if (mounted) setState(() { preview = Uint8List.fromList(b.sublist(at)); previewCount++; previewAt = DateTime.now(); previewStage = stage; });
               } catch (_) {}
               return;
             }
@@ -338,11 +340,11 @@ class _GeneratePageState extends State<GeneratePage> {
         Text('経過 ${elapsed ~/ 60}分${elapsed % 60}秒${count > 1 ? '　（$doneCount/$count本 完了）' : ''}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
         if (preview != null) ...[
           const SizedBox(height: 8),
-          const Text('いまの途中経過（動画の1コマ目・ぼやけています）', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          Text('途中経過（1コマ目・ぼやけています）　$previewCount回目／${previewAt == null ? 0 : DateTime.now().difference(previewAt!).inSeconds}秒前に更新／$previewStage', style: const TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 4),
           Center(child: ConstrainedBox(constraints: const BoxConstraints(maxHeight: 360), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.memory(preview!, gaplessPlayback: true, fit: BoxFit.contain)))),
           const SizedBox(height: 4),
-          const Text('人物や景色がぐちゃぐちゃなら、中止するとユニットを節約できます。', style: TextStyle(fontSize: 12)),
+          const Text('更新は各段階で4回だけです。2段目は1段目の仕上げなので、見た目はあまり変わりません。構図が崩れていたら中止してください。', style: TextStyle(fontSize: 12)),
         ] else if (pct >= 5)
           const Padding(padding: EdgeInsets.only(top: 8), child: Text('途中経過の画像を待っています…（出ない場合はColabの再起動が必要です）', style: TextStyle(fontSize: 12, color: Colors.grey))),
         const SizedBox(height: 8),
