@@ -68,6 +68,27 @@ class _ConnectPageState extends State<ConnectPage> {
     );
   }
 
+  Future<void> _askUnits(BuildContext context) async {
+    final s = widget.state;
+    final rem = TextEditingController(text: s.unitsBase?.toStringAsFixed(1) ?? '');
+    final rate = TextEditingController(text: (s.unitsRate ?? s.status?.unitsPerHour)?.toString() ?? '');
+    final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(
+      title: const Text('残りユニットを入力'),
+      content: Column(mainAxisSize: MainAxisSize.min, children: [
+        const Text('Colabの「ランタイム → リソースを表示」に出ている数字を入れてください。', style: TextStyle(fontSize: 12)),
+        const SizedBox(height: 12),
+        TextField(controller: rem, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '残りのユニット数', border: OutlineInputBorder())),
+        const SizedBox(height: 12),
+        TextField(controller: rate, keyboardType: const TextInputType.numberWithOptions(decimal: true), decoration: const InputDecoration(labelText: '1時間あたりの消費（任意）', border: OutlineInputBorder())),
+      ]),
+      actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('やめる')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('保存'))],
+    ));
+    if (ok == true) {
+      final r = double.tryParse(rem.text.trim());
+      if (r != null) s.setUnits(r, double.tryParse(rate.text.trim()));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = widget.state;
@@ -93,12 +114,26 @@ class _ConnectPageState extends State<ConnectPage> {
       if (st != null) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('Colabの使用状況', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text(st.unitsRemaining == null ? '残りユニット: 取得できません' : '残りユニット: ${st.unitsRemaining!.toStringAsFixed(1)}',
-            style: TextStyle(fontSize: 28, color: cs.primary, fontWeight: FontWeight.bold)),
-        if (st.unitsRemaining == null)
-          const Padding(padding: EdgeInsets.only(top: 6), child: Text(
-              'ノートブックの設定セルに START_UNITS と UNITS_PER_HOUR を入れると、概算の残量が出ます。', style: TextStyle(fontSize: 12, color: Colors.grey))),
-        if (st.unitsRemaining != null) Text(st.usageSource == 'estimate' ? '（起動時の値からの概算）' : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Builder(builder: (context) {
+          final est = st.unitsRemaining ?? s.estimatedUnits(st.isRunning);
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(est == null ? '残りユニット: 未入力' : '残りユニット: ${est.toStringAsFixed(1)}',
+                style: TextStyle(fontSize: 28, color: cs.primary, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(
+              est == null
+                  ? 'Colabの画面「ランタイム → リソースを表示」に出ている値を、一度入れてください。'
+                  : (st.unitsRemaining != null ? '（ノートブックの設定からの概算）' : '（入力した値と、Colabが動いていた時間からの概算）'),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => _askUnits(context),
+              icon: const Icon(Icons.edit, size: 18),
+              label: const Text('残りユニットを入力する'),
+            ),
+          ]);
+        }),
       ]))),
       const SizedBox(height: 8),
       FilledButton.icon(

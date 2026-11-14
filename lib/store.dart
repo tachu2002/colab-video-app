@@ -34,6 +34,8 @@ class AppState extends ChangeNotifier {
   List<HistoryItem> history = [];
   String? driveError;
   bool busy = false;
+  double? unitsBase, unitsRate; // アプリで入力した残りユニットと消費ペース
+  DateTime? unitsBaseAt;
   String checkpoint = ''; // 空 = 標準のH3
   late SharedPreferences _p;
 
@@ -44,6 +46,10 @@ class AppState extends ChangeNotifier {
       try { status = ColabStatus.fromJson(jsonDecode(s)); } catch (_) {}
     }
     checkpoint = _p.getString('checkpoint') ?? '';
+    unitsBase = _p.getDouble('unitsBase');
+    unitsRate = _p.getDouble('unitsRate');
+    final ub = _p.getString('unitsBaseAt');
+    unitsBaseAt = ub == null ? null : DateTime.tryParse(ub);
     final h = _p.getString('history');
     if (h != null) {
       try {
@@ -94,6 +100,24 @@ class AppState extends ChangeNotifier {
     } finally {
       busy = false; notifyListeners();
     }
+  }
+
+  /// Colabの「リソースを表示」で見た値を入れる
+  void setUnits(double remaining, double? rate) {
+    unitsBase = remaining; unitsRate = rate; unitsBaseAt = DateTime.now();
+    _p.setDouble('unitsBase', remaining);
+    if (rate != null) { _p.setDouble('unitsRate', rate); } else { _p.remove('unitsRate'); }
+    _p.setString('unitsBaseAt', unitsBaseAt!.toIso8601String());
+    notifyListeners();
+  }
+
+  /// 入力した値から、Colabが動いていた時間ぶんを引いた概算
+  double? estimatedUnits(bool running) {
+    if (unitsBase == null) return null;
+    if (!running || unitsRate == null || unitsBaseAt == null) return unitsBase;
+    final h = DateTime.now().difference(unitsBaseAt!).inSeconds / 3600;
+    final v = unitsBase! - unitsRate! * h;
+    return v < 0 ? 0 : v;
   }
 
   void setCheckpoint(String v) { checkpoint = v; _p.setString('checkpoint', v); notifyListeners(); }

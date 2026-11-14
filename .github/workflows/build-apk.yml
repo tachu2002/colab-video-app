@@ -43,6 +43,15 @@ jobs:
           rm -f $d/MainActivity.*
           cp ci/MainActivity.kt $d/MainActivity.kt
           ls $d
+      - name: 日本語フォント（Noto Sans JP）を入れる
+        run: |
+          mkdir -p assets/fonts
+          if curl -fL --retry 3 -o assets/fonts/NotoSansJP.ttf "https://github.com/google/fonts/raw/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf" && [ $(stat -c%s assets/fonts/NotoSansJP.ttf) -gt 1000000 ]; then
+            printf '\n  fonts:\n    - family: NotoSansJP\n      fonts:\n        - asset: assets/fonts/NotoSansJP.ttf\n' >> pubspec.yaml
+            echo "font ok"; tail -6 pubspec.yaml
+          else
+            echo "::warning::font download failed"; rm -f assets/fonts/NotoSansJP.ttf
+          fi
       - run: flutter pub get
       - name: ビルド
         run: |

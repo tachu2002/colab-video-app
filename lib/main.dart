@@ -29,6 +29,7 @@ class App extends StatelessWidget {
         ],
         theme: ThemeData(
           useMaterial3: true,
+          fontFamily: 'NotoSansJP', // 全体を日本語の書体に統一（無い場合は端末の標準）
           brightness: Brightness.dark,
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7C9CFF), brightness: Brightness.dark),
           scaffoldBackgroundColor: const Color(0xFF14171D),
