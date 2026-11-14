@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:media_store_plus/media_store_plus.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
@@ -139,17 +139,15 @@ class AppState extends ChangeNotifier {
   }
 
   /// 動画をスマホの「ダウンロード」フォルダへ保存
+  static const _chan = MethodChannel('app/save');
+
   Future<void> saveToDownloads(HistoryItem it) async {
     if (!await File(it.path).exists()) throw ApiException('動画ファイルが端末に見つかりません');
-    await MediaStore.ensureInitialized();
-    MediaStore.appFolder = 'ColabVideo';
-    final res = await MediaStore().saveFile(
-      tempFilePath: it.path,
-      dirType: DirType.download,
-      dirName: DirName.download,
-    );
-    // 返り値がnull、または保存の成否を持つ場合は失敗として扱う
-    if (res == null) throw ApiException('保存できませんでした（端末が書き込みを受け付けませんでした）');
+    try {
+      await _chan.invokeMethod('saveToDownloads', {'path': it.path, 'name': 'video_${it.id}.mp4'});
+    } on PlatformException catch (e) {
+      throw ApiException(e.message ?? '保存できませんでした');
+    }
   }
 
   // ---- 履歴 ----

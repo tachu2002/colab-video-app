@@ -37,6 +37,12 @@ jobs:
           m=android/app/src/main/AndroidManifest.xml
           grep -q 'allowBackup' $m || sed -i 's/<application/<application android:allowBackup="false"/' $m
           grep -n 'allowBackup' $m
+      - name: 保存用のネイティブコードを入れる
+        run: |
+          d=$(dirname $(find android/app/src/main -name 'MainActivity.*' | head -1))
+          rm -f $d/MainActivity.*
+          cp ci/MainActivity.kt $d/MainActivity.kt
+          ls $d
       - run: flutter pub get
       - name: ビルド
         run: |
