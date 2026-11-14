@@ -136,14 +136,16 @@ class AppState extends ChangeNotifier {
 
   /// 動画をスマホの「ダウンロード」フォルダへ保存
   Future<void> saveToDownloads(HistoryItem it) async {
+    if (!await File(it.path).exists()) throw ApiException('動画ファイルが端末に見つかりません');
     await MediaStore.ensureInitialized();
     MediaStore.appFolder = 'ColabVideo';
-    final ok = await MediaStore().saveFile(
+    final res = await MediaStore().saveFile(
       tempFilePath: it.path,
       dirType: DirType.download,
       dirName: DirName.download,
     );
-    if (ok == null) throw ApiException('保存できませんでした');
+    // 返り値がnull、または保存の成否を持つ場合は失敗として扱う
+    if (res == null) throw ApiException('保存できませんでした（端末が書き込みを受け付けませんでした）');
   }
 
   // ---- 履歴 ----

@@ -35,7 +35,7 @@ jobs:
       - name: ビルド
         run: |
           set +e
-          flutter build apk --release > build.log 2>&1
+          flutter build apk --release --no-shrink > build.log 2>&1
           rc=$?
           if [ $rc -ne 0 ]; then
             grep -n -A12 -E "What went wrong|Execution failed|error:|Error:" build.log | head -40 | tr '\n' '|' | sed 's/^/::error::/'

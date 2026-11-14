@@ -71,7 +71,7 @@ class _DetailPageState extends State<DetailPage> {
           final m = ScaffoldMessenger.of(context);
           try {
             await widget.state.saveToDownloads(it);
-            m.showSnackBar(const SnackBar(content: Text('「ダウンロード」フォルダに保存しました')));
+            m.showSnackBar(const SnackBar(content: Text('「ダウンロード」の中の「ColabVideo」フォルダに保存しました')));
           } catch (e) {
             m.showSnackBar(SnackBar(content: Text('保存できませんでした: $e')));
           }
@@ -96,7 +96,7 @@ class _DetailPageState extends State<DetailPage> {
         const SizedBox(height: 12),
         FilledButton.tonalIcon(onPressed: () async {
           final m = ScaffoldMessenger.of(context);
-          try { await widget.state.saveToDownloads(it); m.showSnackBar(const SnackBar(content: Text('「ダウンロード」フォルダに保存しました'))); } catch (e) { m.showSnackBar(SnackBar(content: Text('保存できませんでした: $e'))); }
+          try { await widget.state.saveToDownloads(it); m.showSnackBar(const SnackBar(content: Text('「ダウンロード」の中の「ColabVideo」フォルダに保存しました'))); } catch (e) { m.showSnackBar(SnackBar(content: Text('保存できませんでした: $e'))); }
         }, icon: const Icon(Icons.download), label: const Text('ダウンロードに保存')),
         const SizedBox(height: 8),
         FilledButton.icon(onPressed: () { widget.state.regenerate(it); Navigator.pop(context); }, icon: const Icon(Icons.replay), label: const Text('同じ設定でつくり直す')),
