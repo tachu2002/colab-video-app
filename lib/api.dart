@@ -118,6 +118,11 @@ class HelperApi {
   Future<Map<String, dynamic>> download(String url, String kind, String filename, String token) async =>
       Map<String, dynamic>.from(await _send('POST', '/download', {'url': url, 'kind': kind, 'filename': filename, 'token': token}));
 
+  Future<Map<String, dynamic>> driveList() async => Map<String, dynamic>.from(await _send('GET', '/drive/list'));
+
+  Future<Map<String, dynamic>> driveImport(String kind, String name) async =>
+      Map<String, dynamic>.from(await _send('POST', '/drive/import', {'kind': kind, 'name': name}));
+
   Future<Map<String, dynamic>> downloadStatus(String id) async => Map<String, dynamic>.from(await _send('GET', '/download/$id'));
 
   Future<void> deleteLora(String name) async { await _send('DELETE', '/models?kind=lora&name=${Uri.encodeQueryComponent(name)}'); }

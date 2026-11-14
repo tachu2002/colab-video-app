@@ -19,6 +19,7 @@ class _ModelsPageState extends State<ModelsPage> {
   final url = TextEditingController(), fname = TextEditingController(), token = TextEditingController();
   String kind = 'lora';
   Map<String, dynamic>? job;
+  Map<String, dynamic> drive = {};
   Timer? _t;
 
   HelperApi? get _api => widget.state.status == null ? null : HelperApi(widget.state.status!);
@@ -33,6 +34,7 @@ class _ModelsPageState extends State<ModelsPage> {
     final api = _api;
     if (api == null) { setState(() { loading = false; error = '先に接続してください'; }); return; }
     try {
+      try { drive = await api.driveList(); } catch (_) {}
       final m = await api.models();
       if (!mounted) return;
       setState(() {
@@ -50,7 +52,26 @@ class _ModelsPageState extends State<ModelsPage> {
     final api = _api;
     if (api == null || url.text.trim().isEmpty) return;
     try {
-      final j = await api.download(url.text.trim(), kind, fname.text.trim(), token.text.trim());
+      _watch(await api.download(url.text.trim(), kind, fname.text.trim(), token.text.trim()), clear: true);
+    } catch (e) {
+      setState(() => error = e.toString());
+    }
+  }
+
+  Future<void> _import(String k, String name) async {
+    final api = _api;
+    if (api == null) return;
+    try {
+      _watch(await api.driveImport(k, name));
+    } catch (e) {
+      setState(() => error = e.toString());
+    }
+  }
+
+  void _watch(Map<String, dynamic> j, {bool clear = false}) {
+    final api = _api;
+    if (api == null) return;
+    try {
       setState(() { job = j; error = null; });
       _t?.cancel();
       _t = Timer.periodic(const Duration(seconds: 3), (_) async {
@@ -58,7 +79,7 @@ class _ModelsPageState extends State<ModelsPage> {
           final s = await api.downloadStatus(j['id']);
           if (!mounted) return;
           setState(() => job = s);
-          if (s['state'] != 'running') { _t?.cancel(); if (s['state'] == 'done') { url.clear(); fname.clear(); _load(); } }
+          if (s['state'] != 'running') { _t?.cancel(); if (s['state'] == 'done') { if (clear) { url.clear(); fname.clear(); } _load(); } }
         } catch (_) {}
       });
     } catch (e) {
@@ -105,6 +126,20 @@ class _ModelsPageState extends State<ModelsPage> {
               if (ok == true) { try { await _api?.deleteLora(l); } catch (e) { setState(() => error = e.toString()); } _load(); }
             }),
           ),
+        const Divider(height: 32),
+        Text('Googleドライブから追加', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        Text('ドライブの「ColabVideoApp」フォルダの中の「loras」「checkpoints」にファイルを入れて、右上の更新ボタンを押してください。', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        for (final k in ['checkpoint', 'lora'])
+          for (final it in ((drive[k] ?? []) as List))
+            ListTile(
+              dense: true, contentPadding: EdgeInsets.zero,
+              title: Text(it['name'].toString(), style: const TextStyle(fontSize: 13)),
+              subtitle: Text('${k == 'lora' ? 'LoRA' : 'チェックポイント'} ・ ${_mb(it['size'] as num)}', style: const TextStyle(fontSize: 11)),
+              trailing: it['imported'] == true
+                  ? const Text('取り込み済み', style: TextStyle(fontSize: 12, color: Colors.greenAccent))
+                  : FilledButton.tonal(onPressed: running ? null : () => _import(k, it['name'].toString()), child: const Text('取り込む')),
+            ),
         const Divider(height: 32),
         Text('追加する（URLからColabへダウンロード）', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
