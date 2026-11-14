@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -31,6 +32,8 @@ class _GeneratePageState extends State<GeneratePage> {
   bool running = false, cancel = false, busyText = false;
   double pct = 0;
   String stage = '';
+  Uint8List? preview;
+  int previewCount = 0;
   String? error;
   int doneCount = 0;
   DateTime? startedAt;
@@ -131,7 +134,7 @@ class _GeneratePageState extends State<GeneratePage> {
     if (ja.text.trim().isEmpty && en.text.trim().isEmpty) { setState(() => error = 'プロンプトを入れてください（ランダム生成も使えます）'); return; }
     final p = _preset();
     if (seconds > p.maxSec) seconds = p.maxSec;
-    setState(() { running = true; cancel = false; error = null; doneCount = 0; pct = 0; stage = '準備中'; startedAt = DateTime.now(); });
+    setState(() { running = true; cancel = false; error = null; doneCount = 0; pct = 0; stage = '準備中'; startedAt = DateTime.now(); preview = null; previewCount = 0; });
     _tick = Timer.periodic(const Duration(seconds: 1), (_) { if (mounted) setState(() {}); });
     final api = HelperApi(st);
     final comfy = ComfyApi(st.comfyUrl);
@@ -151,7 +154,23 @@ class _GeneratePageState extends State<GeneratePage> {
         try {
           ch = WebSocketChannel.connect(comfy.wsUri(cid));
           sub = ch.stream.listen((m) {
-            if (m is! String) return;
+            if (m is! String) {
+              // 途中経過の画像（先頭のコマ）。JPEG/PNGの印を探して取り出す
+              try {
+                final b = m is Uint8List ? m : Uint8List.fromList((m as List).cast<int>());
+                if (b.length < 16) return;
+                final t = (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3];
+                if (t != 1 && t != 4) return;
+                var at = -1;
+                for (var k = 4; k < b.length - 4 && k < 4096; k++) {
+                  if ((b[k] == 0xFF && b[k + 1] == 0xD8 && b[k + 2] == 0xFF) ||
+                      (b[k] == 0x89 && b[k + 1] == 0x50 && b[k + 2] == 0x4E && b[k + 3] == 0x47)) { at = k; break; }
+                }
+                if (at < 0) return;
+                if (mounted) setState(() { preview = Uint8List.fromList(b.sublist(at)); previewCount++; });
+              } catch (_) {}
+              return;
+            }
             try {
               final j = jsonDecode(m);
               if (j['type'] == 'progress') {
@@ -317,8 +336,19 @@ class _GeneratePageState extends State<GeneratePage> {
         LinearProgressIndicator(value: pct <= 0 ? null : pct / 100, minHeight: 10),
         const SizedBox(height: 8),
         Text('経過 ${elapsed ~/ 60}分${elapsed % 60}秒${count > 1 ? '　（$doneCount/$count本 完了）' : ''}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        if (preview != null) ...[
+          const SizedBox(height: 8),
+          const Text('いまの途中経過（動画の1コマ目・ぼやけています）', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 4),
+          Center(child: ConstrainedBox(constraints: const BoxConstraints(maxHeight: 360), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.memory(preview!, gaplessPlayback: true, fit: BoxFit.contain)))),
+          const SizedBox(height: 4),
+          const Text('人物や景色がぐちゃぐちゃなら、中止するとユニットを節約できます。', style: TextStyle(fontSize: 12)),
+        ] else if (pct >= 5)
+          const Padding(padding: EdgeInsets.only(top: 8), child: Text('途中経過の画像を待っています…（出ない場合はColabの再起動が必要です）', style: TextStyle(fontSize: 12, color: Colors.grey))),
         const SizedBox(height: 8),
-        OutlinedButton(onPressed: _cancel, child: const Text('中止する')),
+        FilledButton.icon(
+          style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+          onPressed: cancel ? null : _cancel, icon: const Icon(Icons.stop_circle_outlined), label: Text(cancel ? '中止しています…' : '失敗なので中止する')),
       ]))),
       if (!running && doneCount > 0 && error == null)
         const Padding(padding: EdgeInsets.only(top: 8), child: Text('できました。履歴タブで見られます。', style: TextStyle(color: Colors.greenAccent))),

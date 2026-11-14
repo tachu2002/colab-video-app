@@ -193,5 +193,8 @@ class ComfyApi {
 
   Future<void> interrupt() async {
     try { await http.post(Uri.parse('$base/interrupt')).timeout(const Duration(seconds: 15)); } catch (_) {}
+    try {
+      await http.post(Uri.parse('$base/queue'), headers: {'Content-Type': 'application/json'}, body: '{"clear":true}').timeout(const Duration(seconds: 15));
+    } catch (_) {}
   }
 }
