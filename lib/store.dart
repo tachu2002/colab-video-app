@@ -34,6 +34,7 @@ class AppState extends ChangeNotifier {
   List<HistoryItem> history = [];
   String? driveError;
   bool busy = false;
+  String checkpoint = ''; // 空 = 標準のH3
   late SharedPreferences _p;
 
   Future<void> init() async {
@@ -42,6 +43,7 @@ class AppState extends ChangeNotifier {
     if (s != null) {
       try { status = ColabStatus.fromJson(jsonDecode(s)); } catch (_) {}
     }
+    checkpoint = _p.getString('checkpoint') ?? '';
     final h = _p.getString('history');
     if (h != null) {
       try {
@@ -89,6 +91,8 @@ class AppState extends ChangeNotifier {
       busy = false; notifyListeners();
     }
   }
+
+  void setCheckpoint(String v) { checkpoint = v; _p.setString('checkpoint', v); notifyListeners(); }
 
   /// 古ければ読み直す（生成前など）
   Future<void> ensureFresh() async {

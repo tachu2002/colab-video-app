@@ -113,17 +113,26 @@ class HelperApi {
     return (j['loras'] as List).map((e) => e.toString()).toList();
   }
 
+  Future<Map<String, dynamic>> models() async => Map<String, dynamic>.from(await _send('GET', '/models'));
+
+  Future<Map<String, dynamic>> download(String url, String kind, String filename, String token) async =>
+      Map<String, dynamic>.from(await _send('POST', '/download', {'url': url, 'kind': kind, 'filename': filename, 'token': token}));
+
+  Future<Map<String, dynamic>> downloadStatus(String id) async => Map<String, dynamic>.from(await _send('GET', '/download/$id'));
+
+  Future<void> deleteLora(String name) async { await _send('DELETE', '/models?kind=lora&name=${Uri.encodeQueryComponent(name)}'); }
+
   /// 生成を開始して prompt_id を返す
   Future<String> generate({
     required String mode, required String promptEn, required double seconds,
     required String aspect, required String preset, required int seed,
     required List<String> imagesB64, required String lora,
-    required double loraStrength, required String clientId,
+    required double loraStrength, required String clientId, String checkpoint = '',
   }) async {
     final j = await _send('POST', '/generate', {
       'mode': mode, 'prompt_en': promptEn, 'seconds': seconds, 'aspect': aspect,
       'preset': preset, 'seed': seed, 'images_b64': imagesB64, 'lora': lora,
-      'lora_strength': loraStrength, 'client_id': clientId,
+      'lora_strength': loraStrength, 'client_id': clientId, 'checkpoint': checkpoint,
     });
     return j['prompt_id'] as String;
   }

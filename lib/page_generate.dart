@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'api.dart';
 import 'store.dart';
+import 'page_models.dart';
 
 class GeneratePage extends StatefulWidget {
   final AppState state;
@@ -72,7 +73,7 @@ class _GeneratePageState extends State<GeneratePage> {
     final st = s.status;
     if (st == null) return;
     setState(() => loraOpts = st.loras);
-    if (st.isRunning && st.loras.isEmpty) {
+    if (st.isRunning) {
       try {
         final l = await HelperApi(st).loras();
         if (mounted) setState(() => loraOpts = l);
@@ -167,7 +168,7 @@ class _GeneratePageState extends State<GeneratePage> {
         } catch (_) {}
         final pid = await api.generate(
           mode: mode, promptEn: en.text.trim(), seconds: seconds.toDouble(), aspect: ratio,
-          preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid,
+          preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint,
         );
         VideoRef? ref;
         var failSince = DateTime.now();
@@ -293,6 +294,11 @@ class _GeneratePageState extends State<GeneratePage> {
         IconButton(onPressed: running || count >= 4 ? null : () => setState(() => count++), icon: const Icon(Icons.add_circle_outline)),
         Text(count > 1 ? '（約${p.estMin * count}分）' : '', style: const TextStyle(color: Colors.grey)),
       ]),
+      OutlinedButton.icon(
+        onPressed: running ? null : () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => ModelsPage(state: s))); _loadLoras(); },
+        icon: const Icon(Icons.tune),
+        label: Text('モデル管理（チェックポイント・LoRA）${s.checkpoint.isEmpty ? '' : '\n使用中: ${s.checkpoint}'}', textAlign: TextAlign.center),
+      ),
       if (loraOpts.isNotEmpty) ...[
         DropdownButtonFormField<String>(
           value: loraOpts.contains(lora) ? lora : '',
