@@ -43,27 +43,28 @@ class _ConnectPageState extends State<ConnectPage> {
   }
 
   Future<void> _manual() async {
-    final c = TextEditingController(), h = TextEditingController(), t = TextEditingController();
-    final ok = await showDialog<bool>(
+    final c = TextEditingController();
+    String? err;
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('接続情報を直接入力'),
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
+        title: const Text('接続情報を貼り付け'),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(controller: c, decoration: const InputDecoration(labelText: 'ComfyUIのURL')),
-            TextField(controller: h, decoration: const InputDecoration(labelText: 'ヘルパーのURL')),
-            TextField(controller: t, decoration: const InputDecoration(labelText: 'トークン')),
+            const Text('Drive の status.json の中身、または comfy_url / helper_url / helper_token を書いたJSONを、そのまま貼り付けてください。', style: TextStyle(fontSize: 12)),
+            const SizedBox(height: 8),
+            TextField(controller: c, minLines: 4, maxLines: 8, decoration: InputDecoration(border: const OutlineInputBorder(), errorText: err)),
           ]),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('やめる')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('保存')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('やめる')),
+          FilledButton(onPressed: () {
+            final e = widget.state.setFromText(c.text);
+            if (e == null) { Navigator.pop(ctx); } else { setD(() => err = e); }
+          }, child: const Text('保存')),
         ],
-      ),
+      )),
     );
-    if (ok == true && c.text.isNotEmpty && h.text.isNotEmpty && t.text.isNotEmpty) {
-      widget.state.setManual(comfyUrl: c.text, helperUrl: h.text, token: t.text);
-    }
   }
 
   @override
@@ -104,12 +105,12 @@ class _ConnectPageState extends State<ConnectPage> {
         icon: s.busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
         label: Text(st != null && !st.isRunning ? '再接続（Driveを読み直す）' : 'Driveから接続情報を読む'),
       ),
-      if (s.driveError != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(s.driveError!, style: const TextStyle(color: Colors.redAccent))),
+      if (s.driveError != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(s.driveError!.contains('sign_in_failed') ? 'Googleサインインの設定がまだ無いので、Drive連携は使えません。下の「接続情報を貼り付ける」を使ってください。' : s.driveError!, style: const TextStyle(color: Colors.orangeAccent))),
       const SizedBox(height: 8),
       OutlinedButton.icon(onPressed: st == null || _testing ? null : _test, icon: const Icon(Icons.wifi_tethering), label: const Text('接続テスト')),
       if (_healthy != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_healthy! ? '応答しました' : '応答がありません。Colabが動いているか確認してください', style: TextStyle(color: _healthy! ? Colors.greenAccent : Colors.orangeAccent))),
       const SizedBox(height: 8),
-      TextButton(onPressed: _manual, child: const Text('URLとトークンを直接入力する')),
+      FilledButton.tonalIcon(onPressed: _manual, icon: const Icon(Icons.content_paste), label: const Text('接続情報を貼り付ける（かんたん）')),
       if (s.account != null) TextButton(onPressed: s.signOut, child: Text('Googleアカウントを外す（${s.account!.email}）')),
       const SizedBox(height: 16),
       const Text('使い方: PCやスマホでColabのノートブックを「すべてのセルを実行」→ 最後のセルが動いている間だけ、このアプリから生成できます。止めるとここが「停止中」になります。',

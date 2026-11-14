@@ -110,6 +110,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 貼り付けた文字から接続情報を作る（status.json の中身そのまま、または comfy_url / helper_url / helper_token を含むJSON）
+  String? setFromText(String text) {
+    try {
+      final j = jsonDecode(text.trim());
+      if (j is! Map) return '形式が違います';
+      final c = (j['comfy_url'] ?? '').toString(), h = (j['helper_url'] ?? '').toString(), tk = (j['helper_token'] ?? '').toString();
+      if (c.isEmpty || h.isEmpty || tk.isEmpty) return 'comfy_url / helper_url / helper_token が足りません';
+      setManual(comfyUrl: c, helperUrl: h, token: tk);
+      return null;
+    } catch (_) {
+      return 'JSONとして読めませんでした。コピーし直してください';
+    }
+  }
+
   Future<void> signOut() async {
     await _google.signOut();
     account = null;
