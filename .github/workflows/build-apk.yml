@@ -27,7 +27,8 @@ jobs:
           f=android/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.INTERNET' $f || sed -i '0,/<manifest[^>]*>/s//&\n    <uses-permission android:name="android.permission.INTERNET"\/>/' $f
           grep -q 'WRITE_EXTERNAL_STORAGE' $f || sed -i '0,/<manifest[^>]*>/s//&\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"\/>/' $f
-          grep -n permission $f
+          grep -q '<queries>' $f || sed -i 's#</manifest>#    <queries><intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent></queries>\n</manifest>#' $f
+          grep -n 'permission\|queries' $f
       - name: プラグインのcompileSdkを引き上げる
         run: bash ci/patch_gradle.sh
       - run: flutter pub get

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'store.dart';
 import 'page_connect.dart';
 import 'page_generate.dart';
@@ -19,6 +20,13 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         title: '動画生成',
         debugShowCheckedModeBanner: false,
+        locale: const Locale('ja', 'JP'),
+        supportedLocales: const [Locale('ja', 'JP')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         theme: ThemeData(
           useMaterial3: true,
           brightness: Brightness.dark,

@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'api.dart';
 import 'store.dart';
+
+const colabUrl = 'https://colab.research.google.com/github/tachu2002/colab-video-app/blob/main/notebook/colab_video_app_server.ipynb';
 
 class ConnectPage extends StatefulWidget {
   final AppState state;
@@ -99,6 +102,17 @@ class _ConnectPageState extends State<ConnectPage> {
       ]))),
       const SizedBox(height: 8),
       FilledButton.icon(
+        onPressed: () async {
+          final ok = await launchUrl(Uri.parse(colabUrl), mode: LaunchMode.externalApplication);
+          if (!ok && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Colabを開けませんでした')));
+        },
+        icon: const Icon(Icons.rocket_launch),
+        label: const Text('Colabを開いて起動する'),
+      ),
+      const Padding(padding: EdgeInsets.only(top: 4, bottom: 4), child: Text(
+          '開いたら「ランタイム → すべてのセルを実行」を押してください（初回だけDriveの許可も必要）。1〜2分で上の表示が「接続できます」に変わります。',
+          style: TextStyle(fontSize: 12, color: Colors.grey))),
+      FilledButton.tonalIcon(
         onPressed: s.busy ? null : s.refreshFromDrive,
         icon: s.busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
         label: const Text('今すぐ読み直す'),
