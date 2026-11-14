@@ -28,12 +28,29 @@ jobs:
           grep -q 'android.permission.INTERNET' $f || sed -i '0,/<manifest[^>]*>/s//&\n    <uses-permission android:name="android.permission.INTERNET"\/>/' $f
           grep -q 'WRITE_EXTERNAL_STORAGE' $f || sed -i '0,/<manifest[^>]*>/s//&\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"\/>/' $f
           grep -n permission $f
-      - name: minSdkを上げる（media_store_plus用）
+      - name: プラグインのcompileSdkを引き上げる
         run: |
-          for f in android/app/build.gradle.kts android/app/build.gradle; do
-            if [ -f $f ]; then sed -i -E 's/minSdk(Version)? *=? *flutter\.minSdkVersion/minSdk = 33/' $f; grep -n minSdk $f; fi
-          done
-          true
+          if [ -f android/build.gradle.kts ]; then
+          cat >> android/build.gradle.kts <<'EOT'
+
+subprojects {
+    val fixSdk = Action<Project> {
+        (extensions.findByName("android") as? com.android.build.gradle.BaseExtension)?.compileSdkVersion(36)
+    }
+    if (state.executed) fixSdk.execute(this) else afterEvaluate(fixSdk)
+}
+EOT
+          else
+          cat >> android/build.gradle <<'EOT'
+
+subprojects {
+    afterEvaluate { p ->
+        if (p.hasProperty('android')) { p.android.compileSdkVersion 36 }
+    }
+}
+EOT
+          fi
+          tail -12 android/build.gradle* | head -30
       - run: flutter pub get
       - name: ビルド
         run: |
