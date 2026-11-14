@@ -98,13 +98,13 @@ class HelperApi {
     }
   }
 
-  Future<Map<String, String>> random() async {
-    final j = await _send('POST', '/random');
+  Future<Map<String, String>> random([int seconds = 5]) async {
+    final j = await _send('POST', '/random', {'seconds': seconds});
     return {'ja': j['ja'] as String, 'en': j['en'] as String};
   }
 
-  Future<String> translate(String ja) async {
-    final j = await _send('POST', '/translate', {'ja': ja});
+  Future<String> translate(String ja, [int seconds = 5]) async {
+    final j = await _send('POST', '/translate', {'ja': ja, 'seconds': seconds});
     return j['en'] as String;
   }
 

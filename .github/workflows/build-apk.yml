@@ -28,6 +28,11 @@ jobs:
           grep -q 'android.permission.INTERNET' $f || sed -i '0,/<manifest[^>]*>/s//&\n    <uses-permission android:name="android.permission.INTERNET"\/>/' $f
           grep -q 'WRITE_EXTERNAL_STORAGE' $f || sed -i '0,/<manifest[^>]*>/s//&\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"\/>/' $f
           grep -n permission $f
+      - name: minSdkを上げる（media_store_plus用）
+        run: |
+          for f in android/app/build.gradle.kts android/app/build.gradle; do
+            [ -f $f ] && sed -i -E 's/minSdk(Version)? *=? *flutter\.minSdkVersion/minSdk = 33/' $f && grep -n minSdk $f
+          done
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4

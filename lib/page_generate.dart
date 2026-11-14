@@ -100,7 +100,7 @@ class _GeneratePageState extends State<GeneratePage> {
     if (st == null || !st.isRunning) { setState(() => error = '先に接続タブで接続してください'); return; }
     setState(() { busyText = true; error = null; });
     try {
-      final r = await HelperApi(st).random();
+      final r = await HelperApi(st).random(seconds);
       ja.text = r['ja']!; en.text = r['en']!;
     } catch (e) { error = e.toString(); }
     if (mounted) setState(() => busyText = false);
@@ -111,7 +111,7 @@ class _GeneratePageState extends State<GeneratePage> {
     if (st == null || !st.isRunning) { setState(() => error = '先に接続タブで接続してください'); return; }
     if (ja.text.trim().isEmpty) return;
     setState(() { busyText = true; error = null; });
-    try { en.text = await HelperApi(st).translate(ja.text.trim()); } catch (e) { error = e.toString(); }
+    try { en.text = await HelperApi(st).translate(ja.text.trim(), seconds); } catch (e) { error = e.toString(); }
     if (mounted) setState(() => busyText = false);
   }
 
@@ -136,7 +136,7 @@ class _GeneratePageState extends State<GeneratePage> {
     final comfy = ComfyApi(st.comfyUrl);
     try {
       if (en.text.trim().isEmpty) {
-        en.text = await api.translate(ja.text.trim());
+        en.text = await api.translate(ja.text.trim(), seconds);
       }
       final b64 = <String>[];
       for (final f in images.take(maxImages)) { b64.add(base64Encode(await f.readAsBytes())); }
