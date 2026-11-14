@@ -31,6 +31,12 @@ jobs:
           grep -n 'permission\|queries' $f
       - name: プラグインのcompileSdkを引き上げる
         run: bash ci/patch_gradle.sh
+      - name: 署名キーを固定する（上書きインストールできるように）
+        run: |
+          mkdir -p ~/.android && cp ci/debug.keystore ~/.android/debug.keystore
+          m=android/app/src/main/AndroidManifest.xml
+          grep -q 'allowBackup' $m || sed -i 's/<application/<application android:allowBackup="false"/' $m
+          grep -n 'allowBackup' $m
       - run: flutter pub get
       - name: ビルド
         run: |

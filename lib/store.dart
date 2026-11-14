@@ -50,6 +50,10 @@ class AppState extends ChangeNotifier {
         history = (jsonDecode(h) as List).map((e) => HistoryItem.fromJson(e)).toList();
       } catch (_) {}
     }
+    // 動画ファイルが無くなった履歴は取り除く（再インストールなどで消えた場合）
+    final before = history.length;
+    history.removeWhere((e) => !File(e.path).existsSync());
+    if (history.length != before) _p.setString('history', jsonEncode(history.map((e) => e.toJson()).toList()));
     notifyListeners();
   }
 
