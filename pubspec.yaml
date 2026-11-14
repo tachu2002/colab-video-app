@@ -1,0 +1,21 @@
+name: colab_video_app
+description: Colab上のComfyUI(MiniMax H3)で動画を作るアプリ
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  shared_preferences: ^2.2.3
+  image_picker: ^1.1.2
+  video_player: ^2.8.6
+  path_provider: ^2.1.3
+  web_socket_channel: ^3.0.0
+  google_sign_in: ^6.2.1
+
+flutter:
+  uses-material-design: true

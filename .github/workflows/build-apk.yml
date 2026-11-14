@@ -1,0 +1,32 @@
+name: build-apk
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Androidの土台を作る（lib と pubspec は上書きしない）
+        run: flutter create --org com.example --project-name colab_video_app --platforms=android .
+      - name: INTERNET権限を足す
+        run: |
+          f=android/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.INTERNET' $f || sed -i '0,/<manifest[^>]*>/s//&\n    <uses-permission android:name="android.permission.INTERNET"\/>/' $f
+          grep -n INTERNET $f
+      - run: flutter pub get
+      - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: colab-video-app-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
