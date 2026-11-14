@@ -170,19 +170,32 @@ class _GeneratePageState extends State<GeneratePage> {
           preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid,
         );
         VideoRef? ref;
+        var failSince = DateTime.now();
         while (ref == null && !cancel) {
           await Future.delayed(const Duration(seconds: 3));
-          ref = await comfy.result(pid);
+          try {
+            ref = await comfy.result(pid);
+            failSince = DateTime.now();
+          } on ApiException {
+            rethrow; // 生成そのものの失敗
+          } catch (_) {
+            // 通信の一時的な切断は無視して待ち続ける（5分続いたらあきらめる）
+            if (DateTime.now().difference(failSince).inMinutes >= 5) rethrow;
+          }
         }
         sub?.cancel();
         ch?.sink.close();
         if (cancel || ref == null) break;
         setState(() { pct = 95; stage = '端末に保存中'; });
         final id = '${DateTime.now().millisecondsSinceEpoch}';
-        final path = await s.saveVideo(id, comfy.viewUri(ref));
+        String? path;
+        for (var t = 0; t < 4 && path == null; t++) {
+          try { path = await s.saveVideo(id, comfy.viewUri(ref)); }
+          catch (e) { if (t == 3) rethrow; await Future.delayed(const Duration(seconds: 3)); }
+        }
         s.addHistory(HistoryItem(
           id: id, ja: ja.text.trim(), en: en.text.trim(), mode: mode, ratio: ratio, preset: preset,
-          lora: lora, path: path, seconds: seconds, seed: seed, createdAt: DateTime.now(),
+          lora: lora, path: path!, seconds: seconds, seed: seed, createdAt: DateTime.now(),
         ));
         setState(() { doneCount = i + 1; pct = 100; });
       }
