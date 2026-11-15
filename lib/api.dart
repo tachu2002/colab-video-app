@@ -130,8 +130,8 @@ class HelperApi {
     return (j['refmods'] as List).map((e) => e.toString()).toList();
   }
 
-  Future<String> createRefmod(String name, List<String> imagesB64, String detail) async {
-    final j = await _send('POST', '/refmods', {'name': name, 'images_b64': imagesB64, 'detail': detail});
+  Future<String> createRefmod(String name, List<String> imagesB64, String detail, [bool faceCrop = false]) async {
+    final j = await _send('POST', '/refmods', {'name': name, 'images_b64': imagesB64, 'detail': detail, 'face_crop': faceCrop});
     return j['id'] as String;
   }
 

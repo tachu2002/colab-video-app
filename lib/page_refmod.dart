@@ -18,7 +18,7 @@ class _RefmodPageState extends State<RefmodPage> {
   List<String> mods = [];
   final List<XFile> images = [];
   final nameCtl = TextEditingController();
-  bool high = false, busy = false;
+  bool high = false, faceCrop = true, busy = false;
   String? error, info;
   Timer? _t;
 
@@ -54,7 +54,7 @@ class _RefmodPageState extends State<RefmodPage> {
     try {
       final b64 = <String>[];
       for (final f in images) { b64.add(base64Encode(await f.readAsBytes())); }
-      final id = await api.createRefmod(name, b64, high ? 'high' : 'standard');
+      final id = await api.createRefmod(name, b64, high ? 'high' : 'standard', faceCrop);
       _t = Timer.periodic(const Duration(seconds: 3), (t) async {
         try {
           final j = await api.refmodJob(id);
@@ -99,6 +99,10 @@ class _RefmodPageState extends State<RefmodPage> {
         SwitchListTile(
           contentPadding: EdgeInsets.zero, value: high, onChanged: busy ? null : (v) => setState(() => high = v),
           title: const Text('細かく取り込む'), subtitle: const Text('顔の再現は良くなりますが、生成が少し遅くなります'),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero, value: faceCrop, onChanged: busy ? null : (v) => setState(() => faceCrop = v),
+          title: const Text('顔を自動で切り出す'), subtitle: const Text('写真から顔まわりだけを取り込み、顔の再現を良くします（顔が見つからない写真はそのまま使います）'),
         ),
         FilledButton.icon(onPressed: busy ? null : _create, icon: const Icon(Icons.auto_fix_high), label: Text(busy ? '作成中…' : 'RefModを作る')),
         const SizedBox(height: 16),
