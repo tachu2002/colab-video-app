@@ -20,6 +20,7 @@ class App extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
         title: '動画生成',
         debugShowCheckedModeBanner: false,
+        builder: (context, child) => SelectionArea(child: child ?? const SizedBox()), // 画面内の文字を長押しでコピーできる
         locale: const Locale('ja', 'JP'),
         supportedLocales: const [Locale('ja', 'JP')],
         localizationsDelegates: const [
