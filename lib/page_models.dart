@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'api.dart';
+import 'widgets.dart';
 import 'store.dart';
 
 /// チェックポイントの切り替えと、LoRAの追加（URLからColabへダウンロード）
@@ -98,7 +99,7 @@ class _ModelsPageState extends State<ModelsPage> {
       appBar: AppBar(title: const Text('モデル管理'), actions: [IconButton(onPressed: _load, icon: const Icon(Icons.refresh))]),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         if (loading) const LinearProgressIndicator(),
-        if (error != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(error!, style: const TextStyle(color: Colors.orangeAccent))),
+        if (error != null) ErrorBox(error!, color: Colors.orangeAccent),
         Text('チェックポイント（本体モデル）', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
         const Text('標準以外は、H3専用の高速化の設定と合わない場合があります。うまく動かない時は「標準」に戻してください。', style: TextStyle(fontSize: 12, color: Colors.grey)),

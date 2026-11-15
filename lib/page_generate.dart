@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'api.dart';
+import 'widgets.dart';
 import 'store.dart';
 import 'page_models.dart';
 import 'page_refmod.dart';
@@ -358,7 +359,7 @@ class _GeneratePageState extends State<GeneratePage> {
         if (lora.isNotEmpty) Slider(value: loraStrength, min: 0.1, max: 1.5, divisions: 14, label: loraStrength.toStringAsFixed(1), onChanged: running ? null : (v) => setState(() => loraStrength = v)),
       ],
       const SizedBox(height: 12),
-      if (error != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(error!, style: const TextStyle(color: Colors.redAccent))),
+      if (error != null) ErrorBox(error!, color: Colors.redAccent),
       if (!running) FilledButton.icon(onPressed: _run, icon: const Icon(Icons.play_arrow), label: Text(count > 1 ? '$count本つくる' : '生成する')),
       if (running) Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('${pct.floor()}%　$stage', style: const TextStyle(fontWeight: FontWeight.bold)),

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'api.dart';
+import 'widgets.dart';
 import 'store.dart';
 
 /// 参照画像から RefMod（キャラ固定用の小さなファイル）を作る・消す
@@ -79,7 +80,7 @@ class _RefmodPageState extends State<RefmodPage> {
       body: ListView(padding: const EdgeInsets.all(16), children: [
         const Text('同じ人物の写真を1〜8枚えらぶと、小さな参照ファイルになります。生成画面でLoRAのように選んで使えます。作ったものはGoogleドライブにも保存されます。', style: TextStyle(fontSize: 12, color: Colors.grey)),
         const SizedBox(height: 12),
-        if (error != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(error!, style: const TextStyle(color: Colors.redAccent))),
+        if (error != null) ErrorBox(error!, color: Colors.redAccent),
         if (info != null) Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(info!, style: const TextStyle(color: Colors.greenAccent))),
         TextField(controller: nameCtl, enabled: !busy, decoration: const InputDecoration(labelText: '名前（英数字。例: hiyori）', border: OutlineInputBorder())),
         const SizedBox(height: 8),
