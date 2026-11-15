@@ -8,6 +8,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import 'api.dart';
 import 'store.dart';
 import 'page_models.dart';
+import 'page_refmod.dart';
 
 class GeneratePage extends StatefulWidget {
   final AppState state;
@@ -28,6 +29,8 @@ class _GeneratePageState extends State<GeneratePage> {
   String lora = '';
   double loraStrength = 0.8;
   List<String> loraOpts = [];
+  List<String> refOpts = [];
+  final Map<String, double> refSel = {};
 
   bool running = false, cancel = false, busyText = false;
   double pct = 0;
@@ -82,6 +85,10 @@ class _GeneratePageState extends State<GeneratePage> {
       try {
         final l = await HelperApi(st).loras();
         if (mounted) setState(() => loraOpts = l);
+      } catch (_) {}
+      try {
+        final r = await HelperApi(st).refmods();
+        if (mounted) setState(() { refOpts = r; refSel.removeWhere((k, _) => !r.contains(k)); });
       } catch (_) {}
     }
   }
@@ -190,6 +197,7 @@ class _GeneratePageState extends State<GeneratePage> {
         final pid = await api.generate(
           mode: mode, promptEn: en.text.trim(), seconds: seconds.toDouble(), aspect: ratio,
           preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint,
+          refmods: [for (final e in refSel.entries) {'name': e.key, 'strength': e.value}],
         );
         VideoRef? ref;
         var failSince = DateTime.now();
@@ -315,6 +323,26 @@ class _GeneratePageState extends State<GeneratePage> {
         IconButton(onPressed: running || count >= 4 ? null : () => setState(() => count++), icon: const Icon(Icons.add_circle_outline)),
         Text(count > 1 ? '（約${p.estMin * count}分）' : '', style: const TextStyle(color: Colors.grey)),
       ]),
+      const SizedBox(height: 8),
+      Text('RefMod（キャラ固定）', style: Theme.of(context).textTheme.titleSmall),
+      if (refOpts.isEmpty) const Text('まだありません。下のボタンで参照画像から作れます', style: TextStyle(fontSize: 12, color: Colors.grey)),
+      if (refOpts.isNotEmpty) Wrap(spacing: 8, children: [
+        for (final r in refOpts)
+          FilterChip(
+            label: Text(r), selected: refSel.containsKey(r),
+            onSelected: running ? null : (v) => setState(() { if (v) { refSel[r] = 1.0; } else { refSel.remove(r); } }),
+          ),
+      ]),
+      for (final e in refSel.entries)
+        Row(children: [
+          Expanded(flex: 2, child: Text('${e.key} の強さ', style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+          Expanded(flex: 3, child: Slider(value: e.value, min: 0.1, max: 1.0, divisions: 9, label: e.value.toStringAsFixed(1), onChanged: running ? null : (v) => setState(() => refSel[e.key] = v))),
+        ]),
+      OutlinedButton.icon(
+        onPressed: running ? null : () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => RefmodPage(state: s))); _loadLoras(); },
+        icon: const Icon(Icons.face_retouching_natural),
+        label: const Text('RefModを作る・管理'),
+      ),
       OutlinedButton.icon(
         onPressed: running ? null : () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => ModelsPage(state: s))); _loadLoras(); },
         icon: const Icon(Icons.tune),

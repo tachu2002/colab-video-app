@@ -125,6 +125,20 @@ class HelperApi {
 
   Future<Map<String, dynamic>> downloadStatus(String id) async => Map<String, dynamic>.from(await _send('GET', '/download/$id'));
 
+  Future<List<String>> refmods() async {
+    final j = await _send('GET', '/refmods');
+    return (j['refmods'] as List).map((e) => e.toString()).toList();
+  }
+
+  Future<String> createRefmod(String name, List<String> imagesB64, String detail) async {
+    final j = await _send('POST', '/refmods', {'name': name, 'images_b64': imagesB64, 'detail': detail});
+    return j['id'] as String;
+  }
+
+  Future<Map<String, dynamic>> refmodJob(String id) async => Map<String, dynamic>.from(await _send('GET', '/refmods/job/$id'));
+
+  Future<void> deleteRefmod(String name) async { await _send('DELETE', '/refmods?name=${Uri.encodeQueryComponent(name)}'); }
+
   Future<void> deleteLora(String name) async { await _send('DELETE', '/models?kind=lora&name=${Uri.encodeQueryComponent(name)}'); }
 
   /// 生成を開始して prompt_id を返す
@@ -133,11 +147,12 @@ class HelperApi {
     required String aspect, required String preset, required int seed,
     required List<String> imagesB64, required String lora,
     required double loraStrength, required String clientId, String checkpoint = '',
+    List<Map<String, dynamic>> refmods = const [],
   }) async {
     final j = await _send('POST', '/generate', {
       'mode': mode, 'prompt_en': promptEn, 'seconds': seconds, 'aspect': aspect,
       'preset': preset, 'seed': seed, 'images_b64': imagesB64, 'lora': lora,
-      'lora_strength': loraStrength, 'client_id': clientId, 'checkpoint': checkpoint,
+      'lora_strength': loraStrength, 'client_id': clientId, 'checkpoint': checkpoint, 'refmods': refmods,
     });
     return j['prompt_id'] as String;
   }
