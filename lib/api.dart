@@ -147,12 +147,12 @@ class HelperApi {
     required String aspect, required String preset, required int seed,
     required List<String> imagesB64, required String lora,
     required double loraStrength, required String clientId, String checkpoint = '',
-    List<Map<String, dynamic>> refmods = const [],
+    List<Map<String, dynamic>> refmods = const [], String videoB64 = '',
   }) async {
     final j = await _send('POST', '/generate', {
       'mode': mode, 'prompt_en': promptEn, 'seconds': seconds, 'aspect': aspect,
       'preset': preset, 'seed': seed, 'images_b64': imagesB64, 'lora': lora,
-      'lora_strength': loraStrength, 'client_id': clientId, 'checkpoint': checkpoint, 'refmods': refmods,
+      'lora_strength': loraStrength, 'client_id': clientId, 'checkpoint': checkpoint, 'refmods': refmods, 'video_b64': videoB64,
     });
     return j['prompt_id'] as String;
   }

@@ -99,7 +99,8 @@ class _GeneratePageState extends State<GeneratePage> {
     return list.firstWhere((p) => p.id == preset, orElse: () => PresetInfo(preset, preset, 10, 12, false));
   }
 
-  int get maxImages => mode == 'i2v' ? 1 : (mode == 'ref2v' ? 3 : 0);
+  XFile? swapVideo;
+  int get maxImages => mode == 'i2v' ? 1 : (mode == 'ref2v' || mode == 'faceswap' ? 3 : 0);
 
   Future<void> _pick() async {
     final room = maxImages - images.length;
@@ -107,6 +108,11 @@ class _GeneratePageState extends State<GeneratePage> {
     final files = await _picker.pickMultiImage(maxWidth: 1280, maxHeight: 1280, imageQuality: 90, limit: room < 2 ? 2 : room);
     if (files.isEmpty) return;
     setState(() => images.addAll(files.take(room)));
+  }
+
+  Future<void> _pickVideo() async {
+    final f = await _picker.pickVideo(source: ImageSource.gallery);
+    if (f != null) setState(() => swapVideo = f);
   }
 
   Future<void> _random() async {
@@ -140,8 +146,9 @@ class _GeneratePageState extends State<GeneratePage> {
     await s.ensureFresh();
     final st = s.status;
     if (st == null || !st.isRunning) { setState(() => error = '接続できていません。接続タブで再接続してください'); return; }
-    if (mode != 't2v' && images.isEmpty) { setState(() => error = '画像をえらんでください'); return; }
-    if (ja.text.trim().isEmpty && en.text.trim().isEmpty) { setState(() => error = 'プロンプトを入れてください（ランダム生成も使えます）'); return; }
+    if (mode != 't2v' && images.isEmpty) { setState(() => error = mode == 'faceswap' ? '顔の画像をえらんでください' : '画像をえらんでください'); return; }
+    if (mode == 'faceswap' && swapVideo == null) { setState(() => error = '元の動画をえらんでください'); return; }
+    if (mode != 'faceswap' && ja.text.trim().isEmpty && en.text.trim().isEmpty) { setState(() => error = 'プロンプトを入れてください（ランダム生成も使えます）'); return; }
     final p = _preset();
     if (seconds > p.maxSec) seconds = p.maxSec;
     setState(() { running = true; cancel = false; error = null; doneCount = 0; pct = 0; stage = '準備中'; startedAt = DateTime.now(); preview = null; previewCount = 0; });
@@ -149,11 +156,12 @@ class _GeneratePageState extends State<GeneratePage> {
     final api = HelperApi(st);
     final comfy = ComfyApi(st.comfyUrl);
     try {
-      if (en.text.trim().isEmpty) {
+      if (mode != 'faceswap' && en.text.trim().isEmpty) {
         en.text = await api.translate(ja.text.trim(), seconds);
       }
       final b64 = <String>[];
       for (final f in images.take(maxImages)) { b64.add(base64Encode(await f.readAsBytes())); }
+      final vb64 = mode == 'faceswap' && swapVideo != null ? base64Encode(await swapVideo!.readAsBytes()) : '';
       for (var i = 0; i < count && !cancel; i++) {
         final rnd = Random();
         final seed = seedFixed ? (int.tryParse(seedCtl.text) ?? 0) + i : rnd.nextInt(1 << 31);
@@ -197,7 +205,7 @@ class _GeneratePageState extends State<GeneratePage> {
         } catch (_) {}
         final pid = await api.generate(
           mode: mode, promptEn: en.text.trim(), seconds: seconds.toDouble(), aspect: ratio,
-          preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint,
+          preset: preset, seed: seed, imagesB64: b64, videoB64: vb64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint,
           refmods: [for (final e in refSel.entries) {'name': e.key, 'strength': e.value}],
         );
         VideoRef? ref;
@@ -267,6 +275,7 @@ class _GeneratePageState extends State<GeneratePage> {
           ButtonSegment(value: 't2v', label: Text('文字')),
           ButtonSegment(value: 'i2v', label: Text('画像')),
           ButtonSegment(value: 'ref2v', label: Text('参照画像')),
+          ButtonSegment(value: 'faceswap', label: Text('顔入替')),
         ],
         selected: {mode},
         onSelectionChanged: running ? null : (v) => setState(() { mode = v.first; if (images.length > maxImages) images.removeRange(maxImages, images.length); }),
@@ -285,7 +294,12 @@ class _GeneratePageState extends State<GeneratePage> {
           if (images.length < maxImages)
             InkWell(onTap: running ? null : _pick, child: Container(width: 96, height: 96, decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.add_photo_alternate_outlined))),
         ])),
-        Text(mode == 'i2v' ? '最初のフレームになる画像を1枚' : '参照する画像を最大3枚（人物や物など）', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Text(mode == 'i2v' ? '最初のフレームになる画像を1枚' : mode == 'faceswap' ? '新しい顔の画像を最大3枚（顔がはっきり写った写真）' : '参照する画像を最大3枚（人物や物など）', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
+      if (mode == 'faceswap') ...[
+        const SizedBox(height: 8),
+        OutlinedButton.icon(onPressed: running ? null : _pickVideo, icon: const Icon(Icons.video_file_outlined), label: Text(swapVideo == null ? '元の動画をえらぶ（2〜15秒）' : '元の動画: ${swapVideo!.name}')),
+        const Text('実験機能: 3秒の動画で約8分かかります。長さと縦横は元の動画に合わせます', style: TextStyle(fontSize: 12, color: Colors.grey)),
       ],
       const SizedBox(height: 12),
       TextField(controller: ja, minLines: 2, maxLines: 5, decoration: const InputDecoration(labelText: 'プロンプト（日本語）', border: OutlineInputBorder())),
