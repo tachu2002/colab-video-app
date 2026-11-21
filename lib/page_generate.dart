@@ -20,7 +20,7 @@ class GeneratePage extends StatefulWidget {
 
 class _GeneratePageState extends State<GeneratePage> {
   String mode = 't2v';
-  final ja = TextEditingController(), en = TextEditingController(), seedCtl = TextEditingController();
+  final ja = TextEditingController(), en = TextEditingController(), lines = TextEditingController(), seedCtl = TextEditingController();
   final List<XFile> images = [];
   int seconds = 5;
   String ratio = '9:16';
@@ -107,6 +107,13 @@ class _GeneratePageState extends State<GeneratePage> {
     final files = await _picker.pickMultiImage(maxWidth: 1280, maxHeight: 1280, imageQuality: 90, limit: room < 2 ? 2 : room);
     if (files.isEmpty) return;
     setState(() => images.addAll(files.take(room)));
+  }
+
+  // セリフ欄に書いた日本語は、翻訳せずにそのまま「話す言葉」として英語プロンプトに足す
+  String _withLines(String p) {
+    final t = lines.text.trim();
+    if (t.isEmpty) return p;
+    return '$p The character speaks in Japanese, saying exactly: "$t"';
   }
 
   Future<void> _random() async {
@@ -196,7 +203,7 @@ class _GeneratePageState extends State<GeneratePage> {
           }, onError: (_) {}, cancelOnError: false);
         } catch (_) {}
         final pid = await api.generate(
-          mode: mode, promptEn: en.text.trim(), seconds: seconds.toDouble(), aspect: ratio,
+          mode: mode, promptEn: _withLines(en.text.trim()), seconds: seconds.toDouble(), aspect: ratio,
           preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint,
           refmods: [for (final e in refSel.entries) {'name': e.key, 'strength': e.value}],
         );
@@ -288,7 +295,7 @@ class _GeneratePageState extends State<GeneratePage> {
         Text(mode == 'i2v' ? '最初のフレームになる画像を1枚' : '参照する画像を最大3枚（人物や物など）', style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
       const SizedBox(height: 12),
-      TextField(controller: ja, minLines: 2, maxLines: 5, decoration: const InputDecoration(labelText: 'プロンプト（日本語）', border: OutlineInputBorder())),
+      TextField(controller: ja, minLines: 2, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: 'プロンプト（日本語）', border: OutlineInputBorder())),
       const SizedBox(height: 8),
       Row(children: [
         Expanded(child: OutlinedButton.icon(onPressed: busyText || running ? null : _random, icon: const Icon(Icons.casino_outlined), label: const Text('ランダム生成'))),
@@ -297,7 +304,9 @@ class _GeneratePageState extends State<GeneratePage> {
       ]),
       if (busyText) const Padding(padding: EdgeInsets.only(top: 8), child: LinearProgressIndicator()),
       const SizedBox(height: 8),
-      TextField(controller: en, minLines: 2, maxLines: 5, decoration: const InputDecoration(labelText: '英語プロンプト（直せます）', border: OutlineInputBorder())),
+      TextField(controller: en, minLines: 2, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: '英語プロンプト（直せます）', border: OutlineInputBorder())),
+      const SizedBox(height: 8),
+      TextField(controller: lines, minLines: 1, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: 'セリフ（日本語・そのまま話します）', hintText: '例: こんにちは、今日もいい天気だね', border: OutlineInputBorder())),
       const SizedBox(height: 16),
       const Text('長さ'),
       _chips<int>(durs, seconds, (v) => '$v秒', (v) => setState(() => seconds = v)),
