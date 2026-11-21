@@ -20,7 +20,7 @@ class GeneratePage extends StatefulWidget {
 
 class _GeneratePageState extends State<GeneratePage> {
   String mode = 't2v';
-  final ja = TextEditingController(), en = TextEditingController(), lines = TextEditingController(), seedCtl = TextEditingController();
+  final ja = TextEditingController(), en = TextEditingController(), lines = TextEditingController(), hair = TextEditingController(), outfit = TextEditingController(), seedCtl = TextEditingController();
   final List<XFile> images = [];
   int seconds = 5;
   String ratio = '9:16';
@@ -109,6 +109,15 @@ class _GeneratePageState extends State<GeneratePage> {
     setState(() => images.addAll(files.take(room)));
   }
 
+  // 髪型・服装の枠は、日本語のプロンプトに文章として足してから英語に変換する
+  String _jaFull() {
+    var t = ja.text.trim();
+    final h = hair.text.trim(), o = outfit.text.trim();
+    if (h.isNotEmpty) t += '${t.isEmpty ? '' : '。'}髪型は「$h」にしてください';
+    if (o.isNotEmpty) t += '${t.isEmpty ? '' : '。'}服装は「$o」にしてください';
+    return t;
+  }
+
   // セリフ欄に書いた日本語は、翻訳せずにそのまま「話す言葉」として英語プロンプトに足す
   String _withLines(String p) {
     final t = lines.text.trim();
@@ -130,9 +139,9 @@ class _GeneratePageState extends State<GeneratePage> {
   Future<void> _translate() async {
     final st = s.status;
     if (st == null || !st.isRunning) { setState(() => error = '先に接続タブで接続してください'); return; }
-    if (ja.text.trim().isEmpty) return;
+    if (_jaFull().isEmpty) return;
     setState(() { busyText = true; error = null; });
-    try { en.text = await HelperApi(st).translate(ja.text.trim(), seconds); } catch (e) { error = e.toString(); }
+    try { en.text = await HelperApi(st).translate(_jaFull(), seconds); } catch (e) { error = e.toString(); }
     if (mounted) setState(() => busyText = false);
   }
 
@@ -157,7 +166,7 @@ class _GeneratePageState extends State<GeneratePage> {
     final comfy = ComfyApi(st.comfyUrl);
     try {
       if (en.text.trim().isEmpty) {
-        en.text = await api.translate(ja.text.trim(), seconds);
+        en.text = await api.translate(_jaFull(), seconds);
       }
       final b64 = <String>[];
       for (final f in images.take(maxImages)) { b64.add(base64Encode(await f.readAsBytes())); }
@@ -296,6 +305,11 @@ class _GeneratePageState extends State<GeneratePage> {
       ],
       const SizedBox(height: 12),
       TextField(controller: ja, minLines: 2, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: 'プロンプト（日本語）', border: OutlineInputBorder())),
+      const SizedBox(height: 8),
+      TextField(controller: hair, minLines: 1, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: '髪型（日本語）', hintText: '例: 黒髪のロングで、前髪は斜め分け', border: OutlineInputBorder())),
+      const SizedBox(height: 8),
+      TextField(controller: outfit, minLines: 1, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: '服装（日本語）', hintText: '例: 白いニットに、紺のロングスカート', border: OutlineInputBorder())),
+      const Padding(padding: EdgeInsets.only(top: 4), child: Text('髪型・服装は「英語に変換」を押したときに、英語プロンプトへ反映されます', style: TextStyle(fontSize: 12, color: Colors.grey))),
       const SizedBox(height: 8),
       Row(children: [
         Expanded(child: OutlinedButton.icon(onPressed: busyText || running ? null : _random, icon: const Icon(Icons.casino_outlined), label: const Text('ランダム生成'))),
