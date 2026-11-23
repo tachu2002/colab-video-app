@@ -429,12 +429,14 @@ class _GeneratePageState extends State<GeneratePage> {
         label: const Text('RefModを作る・管理'),
       ),
       DropdownButtonFormField<String>(
-        value: const ['', 'pika', 'prism', 'prism_dmad'].contains(s.profile) ? s.profile : '',
+        value: const ['', 'pika', 'prism', 'prism_pika', 'prism_lora', 'prism_dmad'].contains(s.profile) ? s.profile : '',
         decoration: const InputDecoration(labelText: 'モデル（先に「モデル管理」でパックを入れる）'),
         items: const [
           DropdownMenuItem(value: '', child: Text('標準（このアプリ推奨のH3）')),
           DropdownMenuItem(value: 'pika', child: Text('Pika H3 Flex（6ステップ）')),
           DropdownMenuItem(value: 'prism', child: Text('PRISM INT8（8ステップ）')),
+          DropdownMenuItem(value: 'prism_pika', child: Text('PRISM＋Pika 合体済み（6ステップ）')),
+          DropdownMenuItem(value: 'prism_lora', child: Text('PRISM＋PikaのLoRAを重ねる')),
           DropdownMenuItem(value: 'prism_dmad', child: Text('PRISM DMAD-PDMD（質感重視）')),
         ],
         onChanged: running ? null : (v) => setState(() => s.setProfile(v ?? '')),
