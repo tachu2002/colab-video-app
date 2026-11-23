@@ -39,6 +39,7 @@ class AppState extends ChangeNotifier {
   String checkpoint = ''; // 空 = 標準のH3
   String profile = ''; // 空=標準 / pika / prism / prism_dmad
   bool fast = false;
+  bool enc32 = false;
   late SharedPreferences _p;
 
   Future<void> init() async {
@@ -50,6 +51,7 @@ class AppState extends ChangeNotifier {
     checkpoint = _p.getString('checkpoint') ?? '';
     profile = _p.getString('profile') ?? '';
     fast = _p.getBool('fast') ?? false;
+    enc32 = _p.getBool('enc32') ?? false;
     unitsBase = _p.getDouble('unitsBase');
     unitsRate = _p.getDouble('unitsRate');
     final ub = _p.getString('unitsBaseAt');
@@ -125,6 +127,7 @@ class AppState extends ChangeNotifier {
   }
 
   void setProfile(String v) { profile = v; _p.setString('profile', v); notifyListeners(); }
+  void setEnc32(bool v) { enc32 = v; _p.setBool('enc32', v); notifyListeners(); }
   void setFast(bool v) { fast = v; _p.setBool('fast', v); notifyListeners(); }
 
   void setCheckpoint(String v) { checkpoint = v; _p.setString('checkpoint', v); notifyListeners(); }

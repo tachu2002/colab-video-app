@@ -259,7 +259,7 @@ class _GeneratePageState extends State<GeneratePage> {
         } catch (_) {}
         final pid = await api.generate(
           mode: mode, promptEn: _withLines(en.text.trim()), seconds: seconds.toDouble(), aspect: ratio,
-          preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint, profile: s.profile, fast: s.fast,
+          preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint, profile: s.profile, fast: s.fast, enc: s.enc32 ? '32b' : '',
           refmods: [for (final e in refSel.entries) {'name': e.key, 'strength': e.value}],
           videoB64: vb64,
         );
@@ -448,6 +448,12 @@ class _GeneratePageState extends State<GeneratePage> {
           subtitle: const Text('速くなりますが、画質が少し下がる場合があります。', style: TextStyle(fontSize: 11)),
           value: s.fast, onChanged: running ? null : (v) => setState(() => s.setFast(v)),
         ),
+      SwitchListTile(
+        dense: true, contentPadding: EdgeInsets.zero,
+        title: const Text('32B文字読み取り（試験）'),
+        subtitle: const Text('先に「モデル管理」でパックを入れます。画質が上がる可能性があります。', style: TextStyle(fontSize: 11)),
+        value: s.enc32, onChanged: running ? null : (v) => setState(() => s.setEnc32(v)),
+      ),
       OutlinedButton.icon(
         onPressed: running ? null : () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => ModelsPage(state: s))); _loadLoras(); },
         icon: const Icon(Icons.tune),
