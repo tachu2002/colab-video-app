@@ -89,6 +89,11 @@ class HelperApi {
     return jsonDecode(text);
   }
 
+  Future<String> addDetail(String en, String hair, String outfit) async {
+    final j = await _send('POST', '/add_detail', {'en': en, 'hair': hair, 'outfit': outfit});
+    return j['en'] as String;
+  }
+
   Future<bool> health() async {
     try {
       final r = await http.get(Uri.parse('${s.helperUrl}/health')).timeout(const Duration(seconds: 15));

@@ -115,7 +115,7 @@ class _GeneratePageState extends State<GeneratePage> {
     setState(() => images.addAll(files.take(room)));
   }
 
-  // 髪型・服装・セリフの枠は、生成するときに英語プロンプトの末尾へそのまま足す（変換は通さない）
+  // セリフの枠は、翻訳せずにそのまま「話す言葉」として生成時に英語プロンプトの末尾へ足す
   String _jaFull() => ja.text.trim();
 
   // 追記モード: ONのとき、ランダム生成・英語変換は、英語の枠の今の文章を消さずに後ろへ足す
@@ -128,9 +128,7 @@ class _GeneratePageState extends State<GeneratePage> {
   // セリフ欄に書いた日本語は、翻訳せずにそのまま「話す言葉」として英語プロンプトに足す
   String _withLines(String p) {
     var r = p;
-    final h = hair.text.trim(), o = outfit.text.trim(), t = lines.text.trim();
-    if (h.isNotEmpty) r += ' Hairstyle: $h.';
-    if (o.isNotEmpty) r += ' Outfit: $o.';
+    final t = lines.text.trim();
     if (t.isNotEmpty) r += ' The character speaks in Japanese, saying exactly: "$t"';
     return r;
   }
@@ -142,6 +140,20 @@ class _GeneratePageState extends State<GeneratePage> {
     try {
       final r = await HelperApi(st).random(seconds);
       ja.text = appendMode && ja.text.trim().isNotEmpty ? '${ja.text.trim()}。${r['ja']!}' : r['ja']!; en.text = _mergeEn(en.text, r['en']!);
+    } catch (e) { error = e.toString(); }
+    if (mounted) setState(() => busyText = false);
+  }
+
+  // 髪型・服装のイメージ（日本語）を、いまの英語プロンプトの構造を保ったまま、H3向けの英語として反映する
+  Future<void> _addDetail() async {
+    final st = s.status;
+    if (st == null || !st.isRunning) { setState(() => error = '先に接続タブで接続してください'); return; }
+    if (hair.text.trim().isEmpty && outfit.text.trim().isEmpty) { setState(() => error = '髪型か服装を入れてください'); return; }
+    if (en.text.trim().isEmpty) { setState(() => error = '先に英語のプロンプトを作ってください（英語に変換／ランダム生成）'); return; }
+    setState(() { busyText = true; error = null; });
+    try {
+      en.text = await HelperApi(st).addDetail(en.text, hair.text.trim(), outfit.text.trim());
+      hair.clear(); outfit.clear();
     } catch (e) { error = e.toString(); }
     if (mounted) setState(() => busyText = false);
   }
@@ -334,7 +346,7 @@ class _GeneratePageState extends State<GeneratePage> {
       TextField(controller: hair, minLines: 1, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: '髪型（日本語）', hintText: '例: 黒髪のロングで、前髪は斜め分け', border: OutlineInputBorder())),
       const SizedBox(height: 8),
       TextField(controller: outfit, minLines: 1, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: '服装（日本語）', hintText: '例: 白いニットに、紺のロングスカート', border: OutlineInputBorder())),
-      const Padding(padding: EdgeInsets.only(top: 4), child: Text('髪型・服装・セリフは、生成するときに英語プロンプトの最後へ足されます（翻訳は通しません）', style: TextStyle(fontSize: 12, color: Colors.grey))),
+      Row(children: [Expanded(child: Text('イメージを日本語で入れて「追加」を押すと、いまの英語プロンプトの構造はそのまま、髪型・服装の部分だけH3向けの英語に反映します', style: TextStyle(fontSize: 12, color: Colors.grey))), const SizedBox(width: 8), FilledButton.tonal(onPressed: busyText || running ? null : _addDetail, child: const Text('追加'))]),
       SwitchListTile(dense: true, contentPadding: EdgeInsets.zero, title: const Text('追記モード（ランダム生成・英語変換で今の英語を消さない）', style: TextStyle(fontSize: 13)), value: appendMode, onChanged: (v) => setState(() => appendMode = v)),
       const SizedBox(height: 8),
       Row(children: [
