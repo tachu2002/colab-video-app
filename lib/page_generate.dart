@@ -259,7 +259,7 @@ class _GeneratePageState extends State<GeneratePage> {
         } catch (_) {}
         final pid = await api.generate(
           mode: mode, promptEn: _withLines(en.text.trim()), seconds: seconds.toDouble(), aspect: ratio,
-          preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint, profile: s.profile, fast: s.fast, enc: s.enc32 ? '32b' : '',
+          preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint, profile: s.profile, fast: s.fast, enc: (s.enc32 && s.profile.isEmpty) ? '32b' : '',
           refmods: [for (final e in refSel.entries) {'name': e.key, 'strength': e.value}],
           videoB64: vb64,
         );
@@ -432,12 +432,12 @@ class _GeneratePageState extends State<GeneratePage> {
         value: const ['', 'pika', 'prism', 'prism_pika', 'prism_lora', 'prism_dmad'].contains(s.profile) ? s.profile : '',
         decoration: const InputDecoration(labelText: 'モデル（先に「モデル管理」でパックを入れる）'),
         items: const [
-          DropdownMenuItem(value: '', child: Text('標準（このアプリ推奨のH3）')),
-          DropdownMenuItem(value: 'pika', child: Text('Pika H3 Flex（6ステップ）')),
-          DropdownMenuItem(value: 'prism', child: Text('PRISM INT8（8ステップ）')),
-          DropdownMenuItem(value: 'prism_pika', child: Text('PRISM＋Pika 合体済み（6ステップ）')),
-          DropdownMenuItem(value: 'prism_lora', child: Text('PRISM＋PikaのLoRAを重ねる')),
-          DropdownMenuItem(value: 'prism_dmad', child: Text('PRISM DMAD-PDMD（質感重視）')),
+          DropdownMenuItem(value: '', child: Text('標準①（髪・質感・音が強い）')),
+          DropdownMenuItem(value: 'pika', child: Text('Pika H3 Flex（顔が映える・やや速い）')),
+          DropdownMenuItem(value: 'prism', child: Text('試験：PRISM INT8（8ステップ）')),
+          DropdownMenuItem(value: 'prism_pika', child: Text('試験：PRISM＋Pika 合体済み')),
+          DropdownMenuItem(value: 'prism_lora', child: Text('試験：PRISM＋PikaのLoRAを重ねる')),
+          DropdownMenuItem(value: 'prism_dmad', child: Text('試験：PRISM DMAD-PDMD')),
         ],
         onChanged: running ? null : (v) => setState(() => s.setProfile(v ?? '')),
       ),
@@ -450,8 +450,8 @@ class _GeneratePageState extends State<GeneratePage> {
         ),
       SwitchListTile(
         dense: true, contentPadding: EdgeInsets.zero,
-        title: const Text('32B文字読み取り（試験）'),
-        subtitle: const Text('先に「モデル管理」でパックを入れます。画質が上がる可能性があります。', style: TextStyle(fontSize: 11)),
+        title: const Text('32B文字読み取り（標準①向け）'),
+        subtitle: const Text('標準①で画質が上がりました。Pikaでは差がほぼなく遅くなるため、Pika選択時は自動でオフになります。先に「モデル管理」でパックを入れます。', style: TextStyle(fontSize: 11)),
         value: s.enc32, onChanged: running ? null : (v) => setState(() => s.setEnc32(v)),
       ),
       OutlinedButton.icon(
