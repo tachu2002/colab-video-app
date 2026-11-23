@@ -181,12 +181,46 @@ class AppState extends ChangeNotifier {
     return d;
   }
 
+  /// 動画を端末へ保存する。回線が途中で切れても、続きから再開して取り直す（最大12回）
   Future<String> saveVideo(String id, Uri url) async {
-    final r = await http.get(url).timeout(const Duration(minutes: 5));
-    if (r.statusCode != 200) throw ApiException('動画の取得に失敗しました (${r.statusCode})');
     final f = File('${(await _videoDir()).path}/$id.mp4');
-    await f.writeAsBytes(r.bodyBytes);
-    return f.path;
+    final part = File('${f.path}.part');
+    if (await part.exists()) await part.delete();
+    int? total;
+    Object? lastErr;
+    for (var attempt = 0; attempt < 12; attempt++) {
+      final have = await part.exists() ? await part.length() : 0;
+      final client = http.Client();
+      try {
+        final req = http.Request('GET', url);
+        if (have > 0) req.headers['Range'] = 'bytes=$have-';
+        final res = await client.send(req).timeout(const Duration(seconds: 60));
+        if (res.statusCode != 200 && res.statusCode != 206) throw ApiException('動画の取得に失敗しました (${res.statusCode})');
+        final resumed = res.statusCode == 206;
+        if (!resumed && have > 0) await part.writeAsBytes(const []);   // 続きに対応していないときは、最初から
+        final len = res.contentLength;
+        if (len != null) total = (resumed ? have : 0) + len;
+        final sink = part.openWrite(mode: resumed ? FileMode.append : FileMode.write);
+        try {
+          await sink.addStream(res.stream.timeout(const Duration(seconds: 60)));
+        } finally {
+          await sink.close();
+        }
+        final got = await part.length();
+        if (total == null || got >= total) {
+          if (await f.exists()) await f.delete();
+          await part.rename(f.path);
+          return f.path;
+        }
+        lastErr = '途中で切れました ($got/$total)';
+      } catch (e) {
+        lastErr = e;
+      } finally {
+        client.close();
+      }
+      await Future.delayed(Duration(seconds: 2 + attempt));
+    }
+    throw ApiException('動画の取得が途中で切れました。通信の良い場所で、履歴の「同じ設定でつくり直す」か、もう一度お試しください: $lastErr');
   }
 
   void addHistory(HistoryItem it) {
