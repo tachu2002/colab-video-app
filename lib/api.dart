@@ -214,14 +214,21 @@ class ComfyApi {
       throw ApiException(msg);
     }
     final outs = (e['outputs'] ?? {}) as Map<String, dynamic>;
-    for (final o in outs.values) {
-      final imgs = (o['images'] ?? []) as List;
-      if (imgs.isNotEmpty) {
-        final f = imgs.first as Map<String, dynamic>;
-        return VideoRef(f['filename'] as String, (f['subfolder'] ?? '') as String, (f['type'] ?? 'output') as String);
+    // 完成動画は保存ノード(234)の出力。参照動画の読み込みノードも「プレビュー」を出すので、取り違えないようにする
+    VideoRef? pick(Iterable<dynamic> list, {bool onlyOutput = false}) {
+      for (final o in list) {
+        final imgs = (o['images'] ?? []) as List;
+        for (final f in imgs) {
+          final m = f as Map<String, dynamic>;
+          final type = (m['type'] ?? 'output') as String;
+          if (onlyOutput && type != 'output') continue;
+          return VideoRef(m['filename'] as String, (m['subfolder'] ?? '') as String, type);
+        }
       }
+      return null;
     }
-    return null;
+    if (outs['234'] != null) { final r = pick([outs['234']]); if (r != null) return r; }
+    return pick(outs.values, onlyOutput: true);
   }
 
   Uri viewUri(VideoRef v) => Uri.parse('$base/view').replace(queryParameters: {
