@@ -68,7 +68,7 @@ class AppState extends ChangeNotifier {
     _p.setString('status', jsonEncode(raw));
   }
 
-  static const statusFileId = '1FE8pG48hFteyNRhyDWzcDbAfjWufkyYZ';
+  static const statusFileId = '18xyhxgp8Z4mnfzZkhsjZg9tIpj29GG8g';
 
   /// 共有リンクの status.json を自動で読む（貼り付け不要）
   Future<void> refreshFromDrive() async {
