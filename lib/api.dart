@@ -90,8 +90,8 @@ class HelperApi {
   }
 
   /// 動画 → H3用の英語プロンプト。時間がかかるので、ジョブにして進み具合を聞きに行く
-  Future<String> videoPrompt(String videoB64, int seconds, void Function(String) onStage, bool Function() cancelled) async {
-    final j = await _send('POST', '/video_prompt', {'video_b64': videoB64, 'seconds': seconds});
+  Future<String> videoPrompt(String videoB64, int seconds, void Function(String) onStage, bool Function() cancelled, {bool noLook = true}) async {
+    final j = await _send('POST', '/video_prompt', {'video_b64': videoB64, 'seconds': seconds, 'no_look': noLook});
     final id = j['job'] as String;
     final t0 = DateTime.now();
     while (DateTime.now().difference(t0).inMinutes < 25) {

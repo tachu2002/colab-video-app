@@ -24,6 +24,7 @@ class _GeneratePageState extends State<GeneratePage> {
   final List<XFile> images = [];
   XFile? refVideo;
   String vpStage = '';
+  bool vpNoLook = true;
   int seconds = 5;
   String ratio = '9:16';
   String preset = 'high';
@@ -112,7 +113,7 @@ class _GeneratePageState extends State<GeneratePage> {
     try {
       final vb = await refVideo!.readAsBytes();
       if (vb.length > 60 * 1024 * 1024) throw Exception('動画が大きすぎます（60MB以下にしてください）');
-      final r = await HelperApi(st).videoPrompt(base64Encode(vb), seconds, (t) { if (mounted) setState(() => vpStage = t); }, () => !mounted);
+      final r = await HelperApi(st).videoPrompt(base64Encode(vb), seconds, (t) { if (mounted) setState(() => vpStage = t); }, () => !mounted, noLook: vpNoLook);
       en.text = r;
     } catch (e) { error = e.toString(); }
     if (mounted) setState(() { busyText = false; vpStage = ''; });
@@ -339,6 +340,9 @@ class _GeneratePageState extends State<GeneratePage> {
         OutlinedButton.icon(onPressed: running ? null : _pickVideo, icon: const Icon(Icons.video_library_outlined),
           label: Text(refVideo == null ? '参照する動画をえらぶ' : '選択中: ${refVideo!.name}')),
         const SizedBox(height: 4),
+        SwitchListTile(dense: true, contentPadding: EdgeInsets.zero, title: const Text('人物の外見は書かない（動き・構図だけ読み取る）', style: TextStyle(fontSize: 13)),
+          subtitle: const Text('オンにすると、元の人物と別の人物にしやすくなります。髪型・服装は下の枠から「追加」で足せます', style: TextStyle(fontSize: 11)),
+          value: vpNoLook, onChanged: (v) => setState(() => vpNoLook = v)),
         OutlinedButton.icon(onPressed: busyText || running || refVideo == null ? null : _videoPrompt, icon: const Icon(Icons.auto_awesome_outlined),
           label: Text(busyText && vpStage.isNotEmpty ? vpStage : '動画からプロンプトを作る（英語の枠に入ります）')),
         const Text('動きと構図を真似します。先頭の3秒だけを使います（2秒以上の動画）。人物や服装はプロンプトで指定します', style: TextStyle(fontSize: 12, color: Colors.grey)),
