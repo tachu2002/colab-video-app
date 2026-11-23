@@ -144,7 +144,7 @@ class _GeneratePageState extends State<GeneratePage> {
     if (mounted) setState(() => busyText = false);
   }
 
-  // 髪型・服装のイメージ（日本語）を、いまの英語プロンプトの構造を保ったまま、H3向けの英語として反映する
+  // 髪型・服装のイメージ（日本語）を、H3向けの英語に変換して、いまの英語プロンプトへ追記する
   Future<void> _addDetail() async {
     final st = s.status;
     if (st == null || !st.isRunning) { setState(() => error = '先に接続タブで接続してください'); return; }
@@ -346,7 +346,7 @@ class _GeneratePageState extends State<GeneratePage> {
       TextField(controller: hair, minLines: 1, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: '髪型（日本語）', hintText: '例: 黒髪のロングで、前髪は斜め分け', border: OutlineInputBorder())),
       const SizedBox(height: 8),
       TextField(controller: outfit, minLines: 1, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: '服装（日本語）', hintText: '例: 白いニットに、紺のロングスカート', border: OutlineInputBorder())),
-      Row(children: [Expanded(child: Text('イメージを日本語で入れて「追加」を押すと、いまの英語プロンプトの構造はそのまま、髪型・服装の部分だけH3向けの英語に反映します', style: TextStyle(fontSize: 12, color: Colors.grey))), const SizedBox(width: 8), FilledButton.tonal(onPressed: busyText || running ? null : _addDetail, child: const Text('追加'))]),
+      Row(children: [Expanded(child: Text('イメージを日本語で入れて「追加」を押すと、H3向けの英語に変換して、いまの英語プロンプトへ追記します（元の文章は変えません）', style: TextStyle(fontSize: 12, color: Colors.grey))), const SizedBox(width: 8), FilledButton.tonal(onPressed: busyText || running ? null : _addDetail, child: const Text('追加'))]),
       SwitchListTile(dense: true, contentPadding: EdgeInsets.zero, title: const Text('追記モード（ランダム生成・英語変換で今の英語を消さない）', style: TextStyle(fontSize: 13)), value: appendMode, onChanged: (v) => setState(() => appendMode = v)),
       const SizedBox(height: 8),
       Row(children: [
