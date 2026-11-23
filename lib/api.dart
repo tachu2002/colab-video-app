@@ -89,6 +89,23 @@ class HelperApi {
     return jsonDecode(text);
   }
 
+  /// 動画 → H3用の英語プロンプト。時間がかかるので、ジョブにして進み具合を聞きに行く
+  Future<String> videoPrompt(String videoB64, int seconds, void Function(String) onStage, bool Function() cancelled) async {
+    final j = await _send('POST', '/video_prompt', {'video_b64': videoB64, 'seconds': seconds});
+    final id = j['job'] as String;
+    final t0 = DateTime.now();
+    while (DateTime.now().difference(t0).inMinutes < 25) {
+      if (cancelled()) throw ApiException('中止しました');
+      await Future.delayed(const Duration(seconds: 3));
+      Map r;
+      try { r = await _send('GET', '/video_prompt/job/$id') as Map; } on ApiException { rethrow; } catch (_) { continue; }
+      onStage((r['stage'] ?? '').toString());
+      if (r['state'] == 'done') return r['en'] as String;
+      if (r['state'] == 'error') throw ApiException((r['error'] ?? '失敗しました').toString());
+    }
+    throw ApiException('時間がかかりすぎました。もう一度試してください');
+  }
+
   Future<String> addDetail(String en, String hair, String outfit) async {
     final j = await _send('POST', '/add_detail', {'en': en, 'hair': hair, 'outfit': outfit});
     return j['en'] as String;

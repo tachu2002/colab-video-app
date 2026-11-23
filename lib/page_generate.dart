@@ -23,6 +23,7 @@ class _GeneratePageState extends State<GeneratePage> {
   final ja = TextEditingController(), en = TextEditingController(), lines = TextEditingController(), hair = TextEditingController(), outfit = TextEditingController(), seedCtl = TextEditingController();
   final List<XFile> images = [];
   XFile? refVideo;
+  String vpStage = '';
   int seconds = 5;
   String ratio = '9:16';
   String preset = 'high';
@@ -101,6 +102,21 @@ class _GeneratePageState extends State<GeneratePage> {
   }
 
   int get maxImages => mode == 'i2v' ? 1 : (mode == 'ref2v' ? 3 : 0);
+
+  // 参照動画の中身を読み取って、H3用の英語プロンプトを作る
+  Future<void> _videoPrompt() async {
+    final st = s.status;
+    if (st == null || !st.isRunning) { setState(() => error = '先に接続タブで接続してください'); return; }
+    if (refVideo == null) { setState(() => error = '先に動画をえらんでください'); return; }
+    setState(() { busyText = true; error = null; vpStage = '動画を送っています'; });
+    try {
+      final vb = await refVideo!.readAsBytes();
+      if (vb.length > 60 * 1024 * 1024) throw Exception('動画が大きすぎます（60MB以下にしてください）');
+      final r = await HelperApi(st).videoPrompt(base64Encode(vb), seconds, (t) { if (mounted) setState(() => vpStage = t); }, () => !mounted);
+      en.text = r;
+    } catch (e) { error = e.toString(); }
+    if (mounted) setState(() { busyText = false; vpStage = ''; });
+  }
 
   Future<void> _pickVideo() async {
     final f = await _picker.pickVideo(source: ImageSource.gallery, maxDuration: const Duration(seconds: 15));
@@ -322,6 +338,9 @@ class _GeneratePageState extends State<GeneratePage> {
         const SizedBox(height: 8),
         OutlinedButton.icon(onPressed: running ? null : _pickVideo, icon: const Icon(Icons.video_library_outlined),
           label: Text(refVideo == null ? '参照する動画をえらぶ' : '選択中: ${refVideo!.name}')),
+        const SizedBox(height: 4),
+        OutlinedButton.icon(onPressed: busyText || running || refVideo == null ? null : _videoPrompt, icon: const Icon(Icons.auto_awesome_outlined),
+          label: Text(busyText && vpStage.isNotEmpty ? vpStage : '動画からプロンプトを作る（英語の枠に入ります）')),
         const Text('動きと構図を真似します。先頭の3秒だけを使います（2秒以上の動画）。人物や服装はプロンプトで指定します', style: TextStyle(fontSize: 12, color: Colors.grey)),
       ],
       if (maxImages > 0) ...[
