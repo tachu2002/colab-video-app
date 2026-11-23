@@ -37,6 +37,8 @@ class AppState extends ChangeNotifier {
   double? unitsBase, unitsRate; // アプリで入力した残りユニットと消費ペース
   DateTime? unitsBaseAt;
   String checkpoint = ''; // 空 = 標準のH3
+  String profile = ''; // 空=標準 / pika / prism / prism_dmad
+  bool fast = false;
   late SharedPreferences _p;
 
   Future<void> init() async {
@@ -46,6 +48,8 @@ class AppState extends ChangeNotifier {
       try { status = ColabStatus.fromJson(jsonDecode(s)); } catch (_) {}
     }
     checkpoint = _p.getString('checkpoint') ?? '';
+    profile = _p.getString('profile') ?? '';
+    fast = _p.getBool('fast') ?? false;
     unitsBase = _p.getDouble('unitsBase');
     unitsRate = _p.getDouble('unitsRate');
     final ub = _p.getString('unitsBaseAt');
@@ -119,6 +123,9 @@ class AppState extends ChangeNotifier {
     final v = unitsBase! - unitsRate! * h;
     return v < 0 ? 0 : v;
   }
+
+  void setProfile(String v) { profile = v; _p.setString('profile', v); notifyListeners(); }
+  void setFast(bool v) { fast = v; _p.setBool('fast', v); notifyListeners(); }
 
   void setCheckpoint(String v) { checkpoint = v; _p.setString('checkpoint', v); notifyListeners(); }
 

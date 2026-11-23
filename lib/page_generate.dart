@@ -259,7 +259,7 @@ class _GeneratePageState extends State<GeneratePage> {
         } catch (_) {}
         final pid = await api.generate(
           mode: mode, promptEn: _withLines(en.text.trim()), seconds: seconds.toDouble(), aspect: ratio,
-          preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint,
+          preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint, profile: s.profile, fast: s.fast,
           refmods: [for (final e in refSel.entries) {'name': e.key, 'strength': e.value}],
           videoB64: vb64,
         );
@@ -428,6 +428,24 @@ class _GeneratePageState extends State<GeneratePage> {
         icon: const Icon(Icons.face_retouching_natural),
         label: const Text('RefModを作る・管理'),
       ),
+      DropdownButtonFormField<String>(
+        value: const ['', 'pika', 'prism', 'prism_dmad'].contains(s.profile) ? s.profile : '',
+        decoration: const InputDecoration(labelText: 'モデル（先に「モデル管理」でパックを入れる）'),
+        items: const [
+          DropdownMenuItem(value: '', child: Text('標準（このアプリ推奨のH3）')),
+          DropdownMenuItem(value: 'pika', child: Text('Pika H3 Flex（6ステップ）')),
+          DropdownMenuItem(value: 'prism', child: Text('PRISM INT8（8ステップ）')),
+          DropdownMenuItem(value: 'prism_dmad', child: Text('PRISM DMAD-PDMD（質感重視）')),
+        ],
+        onChanged: running ? null : (v) => setState(() => s.setProfile(v ?? '')),
+      ),
+      if (s.profile.isNotEmpty)
+        SwitchListTile(
+          dense: true, contentPadding: EdgeInsets.zero,
+          title: const Text('高速化（Veda）'),
+          subtitle: const Text('速くなりますが、画質が少し下がる場合があります。', style: TextStyle(fontSize: 11)),
+          value: s.fast, onChanged: running ? null : (v) => setState(() => s.setFast(v)),
+        ),
       OutlinedButton.icon(
         onPressed: running ? null : () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => ModelsPage(state: s))); _loadLoras(); },
         icon: const Icon(Icons.tune),

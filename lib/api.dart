@@ -145,6 +145,12 @@ class HelperApi {
   Future<Map<String, dynamic>> driveImport(String kind, String name) async =>
       Map<String, dynamic>.from(await _send('POST', '/drive/import', {'kind': kind, 'name': name}));
 
+  Future<List<Map<String, dynamic>>> packs() async =>
+      ((await _send('GET', '/packs'))['packs'] as List).map((e) => Map<String, dynamic>.from(e)).toList();
+
+  Future<Map<String, dynamic>> installPack(String id) async =>
+      Map<String, dynamic>.from(await _send('POST', '/packs/$id/install'));
+
   Future<Map<String, dynamic>> downloadStatus(String id) async => Map<String, dynamic>.from(await _send('GET', '/download/$id'));
 
   Future<List<String>> refmods() async {
@@ -169,12 +175,13 @@ class HelperApi {
     required String aspect, required String preset, required int seed,
     required List<String> imagesB64, required String lora,
     required double loraStrength, required String clientId, String checkpoint = '',
-    List<Map<String, dynamic>> refmods = const [], String videoB64 = '',
+    List<Map<String, dynamic>> refmods = const [], String videoB64 = '', String profile = '', bool fast = false,
   }) async {
     final j = await _send('POST', '/generate', {
       'mode': mode, 'prompt_en': promptEn, 'seconds': seconds, 'aspect': aspect,
       'preset': preset, 'seed': seed, 'images_b64': imagesB64, 'lora': lora,
       'lora_strength': loraStrength, 'client_id': clientId, 'checkpoint': checkpoint, 'refmods': refmods, 'video_b64': videoB64,
+      'profile': profile, 'fast': fast,
     });
     return j['prompt_id'] as String;
   }

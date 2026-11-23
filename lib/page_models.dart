@@ -21,6 +21,7 @@ class _ModelsPageState extends State<ModelsPage> {
   String kind = 'lora';
   Map<String, dynamic>? job;
   Map<String, dynamic> drive = {};
+  List<Map<String, dynamic>> packs = [];
   Timer? _t;
 
   HelperApi? get _api => widget.state.status == null ? null : HelperApi(widget.state.status!);
@@ -36,6 +37,7 @@ class _ModelsPageState extends State<ModelsPage> {
     if (api == null) { setState(() { loading = false; error = '先に接続してください'; }); return; }
     try {
       try { drive = await api.driveList(); } catch (_) {}
+      try { packs = await api.packs(); } catch (_) {}
       final m = await api.models();
       if (!mounted) return;
       setState(() {
@@ -54,6 +56,16 @@ class _ModelsPageState extends State<ModelsPage> {
     if (api == null || url.text.trim().isEmpty) return;
     try {
       _watch(await api.download(url.text.trim(), kind, fname.text.trim(), token.text.trim()), clear: true);
+    } catch (e) {
+      setState(() => error = e.toString());
+    }
+  }
+
+  Future<void> _installPack(String id) async {
+    final api = _api;
+    if (api == null) return;
+    try {
+      _watch(await api.installPack(id));
     } catch (e) {
       setState(() => error = e.toString());
     }
@@ -100,6 +112,19 @@ class _ModelsPageState extends State<ModelsPage> {
       body: ListView(padding: const EdgeInsets.all(16), children: [
         if (loading) const LinearProgressIndicator(),
         if (error != null) ErrorBox(error!, color: Colors.orangeAccent),
+        Text('モデルパック（Pika Flex・PRISM）', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 4),
+        const Text('入れたあと、生成タブの「モデル」で選びます。Colabを止めると消えるので、次の起動時にまた入れてください。', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        for (final p in packs)
+          ListTile(
+            dense: true, contentPadding: EdgeInsets.zero,
+            title: Text(p['label'].toString(), style: const TextStyle(fontSize: 13)),
+            subtitle: Text(p['note'].toString(), style: const TextStyle(fontSize: 11)),
+            trailing: p['installed'] == true
+                ? const Text('入っています', style: TextStyle(fontSize: 12, color: Colors.greenAccent))
+                : FilledButton.tonal(onPressed: running ? null : () => _installPack(p['id'].toString()), child: const Text('入れる')),
+          ),
+        const Divider(height: 32),
         Text('チェックポイント（本体モデル）', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
         const Text('標準以外は、H3専用の高速化の設定と合わない場合があります。うまく動かない時は「標準」に戻してください。', style: TextStyle(fontSize: 12, color: Colors.grey)),
