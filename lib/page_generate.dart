@@ -22,6 +22,7 @@ class _GeneratePageState extends State<GeneratePage> {
   String mode = 't2v';
   final ja = TextEditingController(), en = TextEditingController(), lines = TextEditingController(), hair = TextEditingController(), outfit = TextEditingController(), seedCtl = TextEditingController();
   final List<XFile> images = [];
+  XFile? refVideo;
   int seconds = 5;
   String ratio = '9:16';
   String preset = 'high';
@@ -101,6 +102,11 @@ class _GeneratePageState extends State<GeneratePage> {
 
   int get maxImages => mode == 'i2v' ? 1 : (mode == 'ref2v' ? 3 : 0);
 
+  Future<void> _pickVideo() async {
+    final f = await _picker.pickVideo(source: ImageSource.gallery, maxDuration: const Duration(seconds: 15));
+    if (f != null) setState(() => refVideo = f);
+  }
+
   Future<void> _pick() async {
     final room = maxImages - images.length;
     if (room <= 0) return;
@@ -160,7 +166,8 @@ class _GeneratePageState extends State<GeneratePage> {
     await s.ensureFresh();
     final st = s.status;
     if (st == null || !st.isRunning) { setState(() => error = '接続できていません。接続タブで再接続してください'); return; }
-    if (mode != 't2v' && images.isEmpty) { setState(() => error = '画像をえらんでください'); return; }
+    if (mode == 'v2v' && refVideo == null) { setState(() => error = '参照する動画をえらんでください'); return; }
+    if ((mode == 'i2v' || mode == 'ref2v') && images.isEmpty) { setState(() => error = '画像をえらんでください'); return; }
     if (ja.text.trim().isEmpty && en.text.trim().isEmpty) { setState(() => error = 'プロンプトを入れてください（ランダム生成も使えます）'); return; }
     final p = _preset();
     if (seconds > p.maxSec) seconds = p.maxSec;
@@ -171,6 +178,12 @@ class _GeneratePageState extends State<GeneratePage> {
     try {
       if (en.text.trim().isEmpty) {
         en.text = await api.translate(_jaFull(), seconds);
+      }
+      String vb64 = '';
+      if (mode == 'v2v') {
+        final vb = await refVideo!.readAsBytes();
+        if (vb.length > 60 * 1024 * 1024) throw Exception('参照動画が大きすぎます（60MB以下にしてください）');
+        vb64 = base64Encode(vb);
       }
       final b64 = <String>[];
       for (final f in images.take(maxImages)) { b64.add(base64Encode(await f.readAsBytes())); }
@@ -219,6 +232,7 @@ class _GeneratePageState extends State<GeneratePage> {
           mode: mode, promptEn: _withLines(en.text.trim()), seconds: seconds.toDouble(), aspect: ratio,
           preset: preset, seed: seed, imagesB64: b64, lora: lora, loraStrength: loraStrength, clientId: cid, checkpoint: s.checkpoint,
           refmods: [for (final e in refSel.entries) {'name': e.key, 'strength': e.value}],
+          videoB64: vb64,
         );
         VideoRef? ref;
         var failSince = DateTime.now();
@@ -287,10 +301,17 @@ class _GeneratePageState extends State<GeneratePage> {
           ButtonSegment(value: 't2v', label: Text('文字')),
           ButtonSegment(value: 'i2v', label: Text('画像')),
           ButtonSegment(value: 'ref2v', label: Text('参照画像')),
+          ButtonSegment(value: 'v2v', label: Text('参照動画')),
         ],
         selected: {mode},
         onSelectionChanged: running ? null : (v) => setState(() { mode = v.first; if (images.length > maxImages) images.removeRange(maxImages, images.length); }),
       ),
+      if (mode == 'v2v') ...[
+        const SizedBox(height: 8),
+        OutlinedButton.icon(onPressed: running ? null : _pickVideo, icon: const Icon(Icons.video_library_outlined),
+          label: Text(refVideo == null ? '参照する動画をえらぶ' : '選択中: ${refVideo!.name}')),
+        const Text('動きと構図を真似します。先頭の3秒だけを使います（2秒以上の動画）。人物や服装はプロンプトで指定します', style: TextStyle(fontSize: 12, color: Colors.grey)),
+      ],
       if (maxImages > 0) ...[
         const SizedBox(height: 8),
         SizedBox(height: 96, child: ListView(scrollDirection: Axis.horizontal, children: [

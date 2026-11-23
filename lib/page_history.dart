@@ -17,7 +17,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   void dispose() { widget.state.removeListener(_r); super.dispose(); }
 
-  static const modeName = {'t2v': '文字→動画', 'i2v': '画像→動画', 'ref2v': '参照画像→動画'};
+  static const modeName = {'t2v': '文字→動画', 'i2v': '画像→動画', 'ref2v': '参照画像→動画', 'v2v': '参照動画→動画'};
 
   @override
   Widget build(BuildContext context) {
