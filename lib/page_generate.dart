@@ -109,20 +109,24 @@ class _GeneratePageState extends State<GeneratePage> {
     setState(() => images.addAll(files.take(room)));
   }
 
-  // 髪型・服装の枠は、日本語のプロンプトに文章として足してから英語に変換する
-  String _jaFull() {
-    var t = ja.text.trim();
-    final h = hair.text.trim(), o = outfit.text.trim();
-    if (h.isNotEmpty) t += '${t.isEmpty ? '' : '。'}髪型は「$h」にしてください';
-    if (o.isNotEmpty) t += '${t.isEmpty ? '' : '。'}服装は「$o」にしてください';
-    return t;
+  // 髪型・服装・セリフの枠は、生成するときに英語プロンプトの末尾へそのまま足す（変換は通さない）
+  String _jaFull() => ja.text.trim();
+
+  // 追記モード: ONのとき、ランダム生成・英語変換は、英語の枠の今の文章を消さずに後ろへ足す
+  bool appendMode = true;
+  String _mergeEn(String old, String add) {
+    if (!appendMode || old.trim().isEmpty) return add;
+    return '${old.trim()} $add';
   }
 
   // セリフ欄に書いた日本語は、翻訳せずにそのまま「話す言葉」として英語プロンプトに足す
   String _withLines(String p) {
-    final t = lines.text.trim();
-    if (t.isEmpty) return p;
-    return '$p The character speaks in Japanese, saying exactly: "$t"';
+    var r = p;
+    final h = hair.text.trim(), o = outfit.text.trim(), t = lines.text.trim();
+    if (h.isNotEmpty) r += ' Hairstyle: $h.';
+    if (o.isNotEmpty) r += ' Outfit: $o.';
+    if (t.isNotEmpty) r += ' The character speaks in Japanese, saying exactly: "$t"';
+    return r;
   }
 
   Future<void> _random() async {
@@ -131,7 +135,7 @@ class _GeneratePageState extends State<GeneratePage> {
     setState(() { busyText = true; error = null; });
     try {
       final r = await HelperApi(st).random(seconds);
-      ja.text = r['ja']!; en.text = r['en']!;
+      ja.text = appendMode && ja.text.trim().isNotEmpty ? '${ja.text.trim()}。${r['ja']!}' : r['ja']!; en.text = _mergeEn(en.text, r['en']!);
     } catch (e) { error = e.toString(); }
     if (mounted) setState(() => busyText = false);
   }
@@ -141,7 +145,7 @@ class _GeneratePageState extends State<GeneratePage> {
     if (st == null || !st.isRunning) { setState(() => error = '先に接続タブで接続してください'); return; }
     if (_jaFull().isEmpty) return;
     setState(() { busyText = true; error = null; });
-    try { en.text = await HelperApi(st).translate(_jaFull(), seconds); } catch (e) { error = e.toString(); }
+    try { en.text = _mergeEn(en.text, await HelperApi(st).translate(_jaFull(), seconds)); } catch (e) { error = e.toString(); }
     if (mounted) setState(() => busyText = false);
   }
 
@@ -309,7 +313,8 @@ class _GeneratePageState extends State<GeneratePage> {
       TextField(controller: hair, minLines: 1, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: '髪型（日本語）', hintText: '例: 黒髪のロングで、前髪は斜め分け', border: OutlineInputBorder())),
       const SizedBox(height: 8),
       TextField(controller: outfit, minLines: 1, maxLines: null, keyboardType: TextInputType.multiline, decoration: const InputDecoration(labelText: '服装（日本語）', hintText: '例: 白いニットに、紺のロングスカート', border: OutlineInputBorder())),
-      const Padding(padding: EdgeInsets.only(top: 4), child: Text('髪型・服装は「英語に変換」を押したときに、英語プロンプトへ反映されます', style: TextStyle(fontSize: 12, color: Colors.grey))),
+      const Padding(padding: EdgeInsets.only(top: 4), child: Text('髪型・服装・セリフは、生成するときに英語プロンプトの最後へ足されます（翻訳は通しません）', style: TextStyle(fontSize: 12, color: Colors.grey))),
+      SwitchListTile(dense: true, contentPadding: EdgeInsets.zero, title: const Text('追記モード（ランダム生成・英語変換で今の英語を消さない）', style: TextStyle(fontSize: 13)), value: appendMode, onChanged: (v) => setState(() => appendMode = v)),
       const SizedBox(height: 8),
       Row(children: [
         Expanded(child: OutlinedButton.icon(onPressed: busyText || running ? null : _random, icon: const Icon(Icons.casino_outlined), label: const Text('ランダム生成'))),
