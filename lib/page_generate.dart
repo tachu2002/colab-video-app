@@ -402,12 +402,17 @@ class _GeneratePageState extends State<GeneratePage> {
         if (seedFixed) Expanded(child: TextField(controller: seedCtl, keyboardType: TextInputType.number, decoration: const InputDecoration(isDense: true, hintText: '数字'))),
       ]),
       Row(children: [
-        const Text('枚数'),
+        const Text('本数（シードを変えて作る）'),
         IconButton(onPressed: running || count <= 1 ? null : () => setState(() => count--), icon: const Icon(Icons.remove_circle_outline)),
         Text('$count'),
         IconButton(onPressed: running || count >= 4 ? null : () => setState(() => count++), icon: const Icon(Icons.add_circle_outline)),
         Text(count > 1 ? '（約${p.estMin * count}分）' : '', style: const TextStyle(color: Colors.grey)),
       ]),
+      if (count > 1)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Text(seedFixed ? '固定したシードに1ずつ足して作ります。' : 'シードを毎回変えて作ります。できた動画は履歴に並ぶので、良い方を選び、残りは削除できます。セリフが欠けたり不自然になる場合に有効です。', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        ),
       const SizedBox(height: 8),
       Text('RefMod（キャラ固定）', style: Theme.of(context).textTheme.titleSmall),
       if (refOpts.isEmpty) const Text('まだありません。下のボタンで参照画像から作れます', style: TextStyle(fontSize: 12, color: Colors.grey)),
