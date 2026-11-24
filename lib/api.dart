@@ -125,8 +125,8 @@ class HelperApi {
     return {'ja': j['ja'] as String, 'en': j['en'] as String};
   }
 
-  Future<String> translate(String ja, [int seconds = 5]) async {
-    final j = await _send('POST', '/translate', {'ja': ja, 'seconds': seconds});
+  Future<String> translate(String ja, {int seconds = 5, String lines = ''}) async {
+    final j = await _send('POST', '/translate', {'ja': ja, 'seconds': seconds, 'lines': lines});
     return j['en'] as String;
   }
 

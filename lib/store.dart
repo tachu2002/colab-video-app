@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
+import 'queue.dart';
 
 class HistoryItem {
   final String id, ja, en, mode, ratio, preset, lora, path;
@@ -41,6 +42,7 @@ class AppState extends ChangeNotifier {
   bool fast = false;
   bool enc32 = false;
   late SharedPreferences _p;
+  late final JobQueue queue = JobQueue(this); // 生成の予約（順番に1本ずつ作る）
 
   Future<void> init() async {
     _p = await SharedPreferences.getInstance();
